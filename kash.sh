@@ -74,6 +74,7 @@ NODE18_VERSION=18.19.0
 
 MONGODB4_VERSION=4.4.28
 MONGODB5_VERSION=5.0.24
+MONGODB6_VERSION=6.0.13
 
 install_yq() {
     local DL_ROOT=$1
@@ -178,7 +179,6 @@ install_mongo4() {
     curl -OLsS "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB_SUFFIX}.tgz"
     tar xf "mongodb-linux-x86_64-${MONGODB_SUFFIX}.tgz"
     mkdir -p ~/.local/bin/mongo4
-    cp -fR "mongodb-linux-x86_64-${MONGODB_SUFFIX}/bin/mongo" ~/.local/bin/mongo4
     cp -fR "mongodb-linux-x86_64-${MONGODB_SUFFIX}/bin/mongod" ~/.local/bin/mongo4
     sudo mkdir -p /var/lib/mongo4 && sudo mkdir -p /var/log/mongodb4
     sudo chmod a+rwx /var/lib/mongo4 && sudo chmod a+rwx /var/log/mongodb4
@@ -206,10 +206,34 @@ install_mongo5() {
     curl -OLsS "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB_SUFFIX}.tgz"
     tar xf "mongodb-linux-x86_64-${MONGODB_SUFFIX}.tgz"
     mkdir -p ~/.local/bin/mongo5
-    cp -fR "mongodb-linux-x86_64-${MONGODB_SUFFIX}/bin/mongo" ~/.local/bin/mongo5
     cp -fR "mongodb-linux-x86_64-${MONGODB_SUFFIX}/bin/mongod" ~/.local/bin/mongo5
     sudo mkdir -p /var/lib/mongo5 && sudo mkdir -p /var/log/mongodb5
     sudo chmod a+rwx /var/lib/mongo5 && sudo chmod a+rwx /var/log/mongodb5
+    cd ~-
+}
+
+install_mongo6() {
+    local DL_ROOT=$1
+    local DL_PATH="$DL_ROOT/mongo6"
+    mkdir -p "$DL_PATH" && cd "$DL_PATH"
+    case "$OS_ID" in
+        debian)
+            curl -OLsS http://ftp.us.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.1w-0+deb11u1_amd64.deb
+            DEBIAN_FRONTEND=noninteractive && dpkg -i libssl1.1_1.1.1w-0+deb11u1_amd64.deb
+            local MONGODB_SUFFIX=debian11-${MONGODB6_VERSION}
+            ;;
+        ubuntu)
+            local MONGODB_SUFFIX=ubuntu2204-${MONGODB6_VERSION}
+            ;;
+        *)
+    esac
+
+    curl -OLsS "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB_SUFFIX}.tgz"
+    tar xf "mongodb-linux-x86_64-${MONGODB_SUFFIX}.tgz"
+    mkdir -p ~/.local/bin/mongo6
+    cp -fR "mongodb-linux-x86_64-${MONGODB_SUFFIX}/bin/mongod" ~/.local/bin/mongo6
+    sudo mkdir -p /var/lib/mongo6 && sudo mkdir -p /var/log/mongodb6
+    sudo chmod a+rwx /var/lib/mongo6 && sudo chmod a+rwx /var/log/mongodb6
     cd ~-
 }
 
