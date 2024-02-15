@@ -70,7 +70,8 @@ SOPS_VERSION=3.8.1
 
 NVM_VERSION=0.39.7
 NODE16_VERSION=16.20.2
-NODE18_VERSION=18.19.0
+NODE18_VERSION=18.19.1
+NODE20_VERSION=20.11.1
 
 MONGODB4_VERSION=4.4.28
 MONGODB5_VERSION=5.0.24
@@ -157,6 +158,10 @@ install_node16() {
 
 install_node18() {
     bash -i -c "nvm install ${NODE18_VERSION}"
+}
+
+install_node20() {
+    bash -i -c "nvm install ${NODE20_VERSION}"
 }
 
 install_mongo4() {
