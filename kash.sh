@@ -259,14 +259,13 @@ use_mongo() {
         # CI k-mongo will use whatever binary is in $HOME/.local/bin
 
         # Binaries
-        ln -sf "$HOME/.local/bin/mongo$VERSION/mongo" ~/.local/bin
         ln -sf "$HOME/.local/bin/mongo$VERSION/mongod" ~/.local/bin
         # And working dirs
         sudo ln -sf "/var/lib/mongo$VERSION" /var/lib/mongo
         sudo ln -sf "/var/log/mongodb$VERSION" /var/log/mongodb
 
         echo "Now using mongo $VERSION:"
-        "$HOME/.local/bin/mongo/mongod" --version
+        "$HOME/.local/bin/mongod" --version
     else
         # Developer's k-mongo will use MONGO_VERSION
         export MONGO_VERSION="$VERSION"
