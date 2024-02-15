@@ -75,6 +75,7 @@ NODE18_VERSION=18.19.0
 MONGODB4_VERSION=4.4.28
 MONGODB5_VERSION=5.0.24
 MONGODB6_VERSION=6.0.13
+MONGODB7_VERSION=7.0.5
 
 install_yq() {
     local DL_ROOT=$1
@@ -234,6 +235,31 @@ install_mongo6() {
     cp -fR "mongodb-linux-x86_64-${MONGODB_SUFFIX}/bin/mongod" ~/.local/bin/mongo6
     sudo mkdir -p /var/lib/mongo6 && sudo mkdir -p /var/log/mongodb6
     sudo chmod a+rwx /var/lib/mongo6 && sudo chmod a+rwx /var/log/mongodb6
+    cd ~-
+}
+
+install_mongo7() {
+    local DL_ROOT=$1
+    local DL_PATH="$DL_ROOT/mongo7"
+    mkdir -p "$DL_PATH" && cd "$DL_PATH"
+    case "$OS_ID" in
+        debian)
+            curl -OLsS http://ftp.us.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.1w-0+deb11u1_amd64.deb
+            DEBIAN_FRONTEND=noninteractive && dpkg -i libssl1.1_1.1.1w-0+deb11u1_amd64.deb
+            local MONGODB_SUFFIX=debian11-${MONGODB7_VERSION}
+            ;;
+        ubuntu)
+            local MONGODB_SUFFIX=ubuntu2204-${MONGODB7_VERSION}
+            ;;
+        *)
+    esac
+
+    curl -OLsS "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB_SUFFIX}.tgz"
+    tar xf "mongodb-linux-x86_64-${MONGODB_SUFFIX}.tgz"
+    mkdir -p ~/.local/bin/mongo7
+    cp -fR "mongodb-linux-x86_64-${MONGODB_SUFFIX}/bin/mongod" ~/.local/bin/mongo7
+    sudo mkdir -p /var/lib/mongo7 && sudo mkdir -p /var/log/mongodb7
+    sudo chmod a+rwx /var/lib/mongo7 && sudo chmod a+rwx /var/log/mongodb7
     cd ~-
 }
 
