@@ -262,7 +262,8 @@ use_mongo() {
     sudo ln -sf "/var/lib/mongo$VERSION" /var/lib/mongo
     sudo ln -sf "/var/log/mongodb$VERSION" /var/log/mongodb
 
-    echo "Now using mongo $VERSION"
+    echo "Now using mongo $VERSION:"
+    "$HOME/.local/bin/mongo/mongod" --version
 }
 
 ### Git
