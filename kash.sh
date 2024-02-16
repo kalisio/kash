@@ -516,8 +516,8 @@ run_kli() {
     fi
 
     cd "$WORK_PATH"
-    nvm exec "$VENV_NODE" node "$WORK_PATH/kli" "$KLI_FILE" --clone --shallow-clone
-    nvm exec "$VENV_NODE" node "$WORK_PATH/kli" "$KLI_FILE" --install
-    nvm exec "$VENV_NODE" node "$WORK_PATH/kli" "$KLI_FILE" --link --link-folder "$WORK_PATH/yarn-links"
+    nvm exec "$NODE_VERSION" node "$WORK_PATH/kli" "$KLI_FILE" --clone --shallow-clone
+    nvm exec "$NODE_VERSION" node "$WORK_PATH/kli" "$KLI_FILE" --install
+    nvm exec "$NODE_VERSION" node "$WORK_PATH/kli" "$KLI_FILE" --link --link-folder "$WORK_PATH/yarn-links"
     cd ~-
 }
