@@ -501,7 +501,7 @@ get_app_infos() {
 
     APP_KLI="$KLI_BASE/$APP_NAME/$APP_FLAVOR/$APP_KLI.js"
 
-    APP_INFOS=("$APP_NAME", "$APP_VERSION", "$APP_FLAVOR", "$APP_KLI")
+    APP_INFOS=("$APP_NAME" "$APP_VERSION" "$APP_FLAVOR" "$APP_KLI")
 }
 
 run_kli() {
