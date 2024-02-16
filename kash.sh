@@ -47,6 +47,9 @@ if [ -n "$CI_ID" ]; then
 mongod --dbpath /var/lib/mongo --logpath /var/log/mongodb/mongod.log --fork --port 27017
 EOF
     chmod a+x ~/.local/bin/k-mongo
+
+    # Most CI services understand ANSI colors
+    export TERM=xterm-color
 fi
 
 # If nvm is present, make it available to script
