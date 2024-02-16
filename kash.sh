@@ -303,10 +303,21 @@ use_mongo() {
     fi
 }
 
+### Utils
+###
+
+parse_semver() {
+    local REGEXP="^([0-9]+)\.([0-9]+)\.([0-9]+)"
+    [[ "$1" =~ $REGEXP ]]
+    SEMVER=(${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]})
+}
+
 ### Git
 ###
 
 get_git_tag() {
+    local REPO_ROOT="$1"
+    cd "$REPO_ROOT"
     case "$CI_ID" in
         github)
             if [ "$GITHUB_REF_TYPE" = "tag" ]; then
@@ -323,9 +334,12 @@ get_git_tag() {
             git tag --points-at
             ;;
     esac
+    cd ~-
 }
 
 get_git_branch() {
+    local REPO_ROOT="$1"
+    cd "$REPO_ROOT"
     case "$CI_ID" in
         github)
             if [ "$GITHUB_REF_TYPE" = "branch" ]; then
@@ -346,9 +360,12 @@ get_git_branch() {
             git branch --show-current
             ;;
     esac
+    cd ~-
 }
 
 get_git_commit_sha() {
+    local REPO_ROOT="$1"
+    cd "$REPO_ROOT"
     case "$CI_ID" in
         github)
             echo "$GITHUB_SHA"
@@ -363,15 +380,18 @@ get_git_commit_sha() {
             git rev-parse HEAD
             ;;
     esac
+    cd ~-
 }
 
 get_git_changed_files() {
     local COMMIT0=${1:-HEAD}
     local COMMIT1=${2:-"$COMMIT0"^}
 
+    cd "$REPO_ROOT"
     if [ -z "$CI_ID" ]; then
         git diff --name-only "$COMMIT0" "$COMMIT1"
     fi
+    cd ~-
 }
 
 ### Github
@@ -427,4 +447,77 @@ end_group() {
     elif [ "$CI_ID" = "travis" ]; then
         echo "travis_fold:end:$TITLE"
     fi
+}
+
+### Slack
+###
+
+slack_log() {
+    local URL="$1"
+    local MSG="$2"
+
+    PAYLOAD="{ blocks: [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \"$MSG\" } } ] }"
+    curl -X POST -H "Content-type: application/json" --data "$PAYLOAD" "$URL"
+}
+
+slack_color_log() {
+    local URL="$1"
+    local MSG="$2"
+    local COLOR="$3"
+
+    PAYLOAD="{ attachments: [ { \"color\": \"$COLOR\", blocks: [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \"$MSG\" } } ] } ] }"
+    curl -X POST -H "Content-type: application/json" --data "$PAYLOAD" "$URL"
+}
+
+### Kalisio
+###
+
+get_app_infos() {
+    local REPO_ROOT="$1"
+    local KLI_BASE="$2"
+    local APP_NAME=$(node -p -e "require(\"$REPO_ROOT/package.json\").name")
+    local APP_VERSION=$(node -p -e "require(\"$REPO_ROOT/package.json\").version")
+    local APP_FLAVOR
+    local APP_KLI
+
+    local GIT_TAG=$(get_git_tag "$REPO_ROOT")
+    if [[ "$GIT_TAG" =~  prod-v* ]]; then
+        APP_FLAVOR=prod
+        APP_KLI="$APP_NAME-$APP_VERSION"
+    else
+        local GIT_BRANCH=$(get_git_branch "$REPO_ROOT")
+        if [[ $"GIT_BRANCH" =~ ^test-*|*-test$ ]]; then
+            APP_FLAVOR=test
+            parse_semver "$APP_VERSION"
+            APP_KLI="$APP_NAME-${SEMVER[0]}.${SEMVER[1]}"
+        else
+            APP_FLAVOR=dev
+            APP_KLI="$APP_NAME"
+            if [ -f "$KLI_BASE/$APP_NAME/$APP_FLAVOR/$APP_NAME-$GIT_BRANCH.js" ]; then
+                APP_KLI="$APP_NAME-$GIT_BRANCH"
+            fi
+        fi
+    fi
+
+    APP_KLI="$KLI_BASE/$APP_NAME/$APP_FLAVOR/$APP_KLI.js"
+
+    APP_INFOS=("$APP_NAME", "$APP_VERSION", "$APP_FLAVOR", "$APP_KLI")
+}
+
+run_kli() {
+    local WORK_PATH="$1"
+    local KLI_FILE="$2"
+    local NODE_VERSION="$3"
+
+    # Clone kli in venv if not there
+    if [ ! -d "$WORK_PATH/kli" ]; then
+        git clone --depth 1 "https://github.com/kalisio/kli.git" "$WORK_PATH/kli"
+        cd "$WORK_PATH/kli" && nvm exec "$NODE_VERSION" yarn install && cd ~-
+    fi
+
+    cd "$WORK_PATH"
+    nvm exec "$VENV_NODE" node "$WORK_PATH/kli" "$KLI_FILE" --clone --shallow-clone
+    nvm exec "$VENV_NODE" node "$WORK_PATH/kli" "$KLI_FILE" --install
+    nvm exec "$VENV_NODE" node "$WORK_PATH/kli" "$KLI_FILE" --link --link-folder "$WORK_PATH/yarn-links"
+    cd ~-
 }
