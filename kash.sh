@@ -472,25 +472,94 @@ slack_color_log() {
     curl -X POST -H "Content-type: application/json" --data "$PAYLOAD" "$URL"
 }
 
+### SOPS
+###
+
+enc2dec() {
+    local ENC="$1"
+    local BASENAME
+    BASENAME="$(basename "$ENC")"
+    local FILENAME="${BASENAME%%.*}"
+    local EXTENSION="${BASENAME##*.}"
+    local DEC
+    DEC="$(dirname "$ENC")/${FILENAME}.dec.${EXTENSION}"
+    echo "$DEC"
+}
+
+dec2enc() {
+    local DEC="$1"
+    local BASENAME
+    BASENAME="$(basename "$DEC")"
+    local FILENAME="${BASENAME%%.*}"
+    local EXTENSION="${BASENAME##*.}"
+    local ENC
+    ENC="$(dirname "$DEC")/${FILENAME}.enc.${EXTENSION}"
+    echo "$ENC"
+}
+
+# Loads environment variables from an encrypted env file
+load_env_files() {
+    # Use developer key unless one of SOPS_AGE_KEY or SOPS_AGE_KEY_FILE is already defined (eg. CI)
+    if [ -z "${SOPS_AGE_KEY-}" ] && [ -z "${SOPS_AGE_KEY_FILE-}" ]; then
+        export SOPS_AGE_KEY_FILE="$DEVELOPMENT_DIR/age/keys.txt"
+    fi
+
+    for ENC in "$@"; do
+        if [ -f "$ENC" ]; then
+            local DEC
+            DEC="$(enc2dec "$ENC")"
+            sops --decrypt --output "$DEC" "$ENC"
+            set -a && . "$DEC" && set +a
+        fi
+    done
+}
+
+# Decrypt files containing secrets and define an environment variable
+load_value_files() {
+    # Use developer key unless one of SOPS_AGE_KEY or SOPS_AGE_KEY_FILE is already defined (eg. CI)
+    if [ -z "${SOPS_AGE_KEY-}" ] && [ -z "${SOPS_AGE_KEY_FILE-}" ]; then
+        export SOPS_AGE_KEY_FILE="$DEVELOPMENT_DIR/age/keys.txt"
+    fi
+
+    for ENC in "$@"; do
+        if [ -f "$ENC" ]; then
+            local DEC
+            DEC="$(enc2dec "$ENC")"
+            sops --decrypt --output "$DEC" "$ENC"
+
+            local BASENAME
+            BASENAME=$(basename "$DEC")
+            local VAR_NAME="${BASENAME%%.*}"
+            # Define (and export) $filename as env var with path to decrypted file as value
+            declare -gx "$VAR_NAME"="$DEC"
+        fi
+    done
+}
+
 ### Kalisio
 ###
 
-get_app_infos() {
+
+init_app_infos() {
     local REPO_ROOT="$1"
     local KLI_BASE="$2"
-    local APP_NAME=$(node -p -e "require(\"$REPO_ROOT/package.json\").name")
-    local APP_VERSION=$(node -p -e "require(\"$REPO_ROOT/package.json\").version")
+    local APP_NAME
+    APP_NAME=$(node -p -e "require(\"$REPO_ROOT/package.json\").name")
+    local APP_VERSION
+    APP_VERSION=$(node -p -e "require(\"$REPO_ROOT/package.json\").version")
     local APP_FLAVOR
     local APP_KLI
 
-    local GIT_TAG=$(get_git_tag "$REPO_ROOT")
+    local GIT_TAG
+    GIT_TAG=$(get_git_tag "$REPO_ROOT")
+    local GIT_BRANCH
+    GIT_BRANCH=$(get_git_branch "$REPO_ROOT")
     if [[ "$GIT_TAG" =~  prod-v* ]]; then
         APP_FLAVOR=prod
         APP_KLI="$APP_NAME-$APP_VERSION"
     else
-        local GIT_BRANCH=$(get_git_branch "$REPO_ROOT")
-        if [[ $"GIT_BRANCH" =~ ^test-*|*-test$ ]]; then
-            APP_FLAVOR=test
+        if [[ "$GIT_BRANCH" =~ ^test-*|*-test$ ]]; then
+            APP_FLAVOR="test"
             parse_semver "$APP_VERSION"
             APP_KLI="$APP_NAME-${SEMVER[0]}.${SEMVER[1]}"
         else
@@ -504,7 +573,31 @@ get_app_infos() {
 
     APP_KLI="$KLI_BASE/$APP_NAME/$APP_FLAVOR/$APP_KLI.js"
 
-    APP_INFOS=("$APP_NAME" "$APP_VERSION" "$APP_FLAVOR" "$APP_KLI")
+    APP_INFOS=("$APP_NAME" "$APP_VERSION" "$APP_FLAVOR" "GIT_TAG" "GIT_BRANCH" "$APP_KLI")
+}
+
+get_app_name() {
+    echo "${APP_INFOS[0]}"
+}
+
+get_app_version() {
+    echo "${APP_INFOS[1]}"
+}
+
+get_app_flavor() {
+    echo "${APP_INFOS[2]}"
+}
+
+get_app_tag() {
+    echo "${APP_INFOS[3]}"
+}
+
+get_app_branch() {
+    echo "${APP_INFOS[4]}"
+}
+
+get_app_kli_file() {
+    echo "${APP_INFOS[5]}"
 }
 
 run_kli() {
