@@ -413,7 +413,7 @@ deploy_gh_pages() {
     cp -fR "$DOCS_PATH"/* "$WORK_PATH"
     # Get current commit to include in doc commit message
     local LOCAL_COMMIT
-    LOCAL_COMMIT=$(get_git_commit_sha)
+    LOCAL_COMMIT=$(get_git_commit_sha "$REPO_PATH")
     # Add new doc and commit (add a .nojekyll file to skip Github jekyll processing)
     cd "$WORK_PATH" && touch .nojekyll && git add --all && git commit -m "Doc build from $LOCAL_COMMIT"
     # Push
@@ -538,7 +538,6 @@ load_value_files() {
 
 ### Kalisio
 ###
-
 
 init_app_infos() {
     local REPO_ROOT="$1"
