@@ -397,18 +397,14 @@ get_git_changed_files() {
     cd ~-
 }
 
-get_git_commit_author_name() {
+get_git_commit_author() {
     local REPO_ROOT="$1"
     cd "$REPO_ROOT"
-    git show -s --pretty=%an
+    local NAME=$(git show -s --pretty=%an)
+    local EMAIL=$(git show -s --pretty=%ae)
     cd ~-
-}
 
-get_git_commit_author_email() {
-    local REPO_ROOT="$1"
-    cd "$REPO_ROOT"
-    git show -s --pretty=%ae
-    cd ~-
+    echo "$NAME <$EMAIL>"
 }
 
 ### Github
@@ -417,23 +413,19 @@ get_git_commit_author_email() {
 deploy_gh_pages() {
     local REPO_URL="$1"
     local DOCS_DIR="$2"
-    local AUTHOR_NAME="$3"
-    local AUTHOR_EMAIL="$4"
-    local COMMIT_MESSAGE="$5"
-    local DOCS_BRANCH="${6:-gh-pages}"
+    local COMMIT_AUTHOR="$3"
+    local COMMIT_MESSAGE="$4"
+    local DOCS_BRANCH="${5:-gh-pages}"
 
     local WORK_DIR
     WORK_DIR="$(mktemp -d -p "$TMP_DIR" gh_pages.XXXXXX)"
 
     # Clone repo to a temp location
     git clone --depth 1 --branch "$DOCS_BRANCH" "$REPO_URL" "$WORK_DIR"
-    # Setup local commiter
-    git config user.name "$AUTHOR_NAME"
-    git config user.email "$AUTHOR_EMAIL"
     # Copy built doc
     cp -fR "$DOCS_DIR"/* "$WORK_DIR"
     # Add new doc and commit (add a .nojekyll file to skip Github jekyll processing)
-    cd "$WORK_DIR" && touch .nojekyll && git add --all && git commit -m "$COMMIT_MESSAGE"
+    cd "$WORK_DIR" && touch .nojekyll && git add --all && git commit --author "$COMMIT_AUTHOR" --message "$COMMIT_MESSAGE"
     # Push
     git push origin "$DOCS_BRANCH"
 }
