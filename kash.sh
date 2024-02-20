@@ -401,25 +401,27 @@ get_git_changed_files() {
 ###
 
 deploy_gh_pages() {
-    local REPO_PATH=$1
-    local DOCS_PATH=$2
-    local BRANCH="${3:-gh-pages}"
-    local WORK_PATH
-    WORK_PATH="$(mktemp -d -p "$TMP_DIR" gh_pages.XXXXXX)"
+    local REPO_URL="$1"
+    local DOCS_DIR="$2"
+    local AUTHOR_NAME="$3"
+    local AUTHOR_EMAIL="$4"
+    local COMMIT_MESSAGE="$5"
+    local DOCS_BRANCH="${6:-gh-pages}"
 
-    # Create a worktree with $BRANCH checked out in it
-    cd "$REPO_PATH" && git worktree add "$WORK_PATH" "$BRANCH"
-    # Copy new doc build in there
-    cp -fR "$DOCS_PATH"/* "$WORK_PATH"
-    # Get current commit to include in doc commit message
-    local LOCAL_COMMIT
-    LOCAL_COMMIT=$(get_git_commit_sha "$REPO_PATH")
+    local WORK_DIR
+    WORK_DIR="$(mktemp -d -p "$TMP_DIR" gh_pages.XXXXXX)"
+
+    # Clone repo to a temp location
+    git clone --depth 1 --branch "$DOCS_BRANCH" "$REPO_URL" "$WORK_DIR"
+    # Setup local commiter
+    git config user.name "$AUTHOR_NAME"
+    git config user.email "$AUTHOR_EMAIL"
+    # Copy built doc
+    cp -fR "$DOCS_DIR"/* "$WORK_DIR"
     # Add new doc and commit (add a .nojekyll file to skip Github jekyll processing)
-    cd "$WORK_PATH" && touch .nojekyll && git add --all && git commit -m "Doc build from $LOCAL_COMMIT"
+    cd "$WORK_DIR" && touch .nojekyll && git add --all && git commit -m "$COMMIT_MESSAGE"
     # Push
     git push origin "$BRANCH"
-    # Remove temp worktree
-    git worktree remove "$WORK_PATH"
 }
 
 ### Log
