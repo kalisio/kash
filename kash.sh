@@ -57,11 +57,11 @@ if [ -d "$HOME/.nvm" ]; then
     . "$HOME/.nvm/nvm.sh"
 fi
 
-# Define a TMP_PATH to operate with temp files
+# Define a TMP_DIR to operate with temp files
 if [ -n "${RUNNER_TEMP:-}" ]; then # RUNNER_TEMP is Github Action specific
-    TMP_PATH="$RUNNER_TEMP"
+    TMP_DIR="$RUNNER_TEMP"
 else
-    TMP_PATH="$(mktemp -d -p "${XDG_RUNTIME_DIR:-}" kalisio.XXXXXX)"
+    TMP_DIR="$(mktemp -d -p "${XDG_RUNTIME_DIR:-}" kalisio.XXXXXX)"
 fi
 
 ### Requirements
@@ -272,11 +272,11 @@ install_mongo7() {
 }
 
 install_reqs() {
-    mkdir -p "$TMP_PATH/dl"
+    mkdir -p "$TMP_DIR/dl"
 
     for REQ in "$@"; do
         echo "Installing $REQ ..."
-        install_"$REQ" "$TMP_PATH/dl"
+        install_"$REQ" "$TMP_DIR/dl"
     done
 }
 
@@ -405,7 +405,7 @@ deploy_gh_pages() {
     local DOCS_PATH=$2
     local BRANCH="${3:-gh-pages}"
     local WORK_PATH
-    WORK_PATH="$(mktemp -d -p "$TMP_PATH" gh_pages.XXXXXX)"
+    WORK_PATH="$(mktemp -d -p "$TMP_DIR" gh_pages.XXXXXX)"
 
     # Create a worktree with $BRANCH checked out in it
     cd "$REPO_PATH" && git worktree add "$WORK_PATH" "$BRANCH"
@@ -605,19 +605,19 @@ get_app_kli_file() {
 }
 
 run_kli() {
-    local WORK_PATH="$1"
+    local WORK_DIR="$1"
     local KLI_FILE="$2"
     local NODE_VERSION="$3"
 
     # Clone kli in venv if not there
-    if [ ! -d "$WORK_PATH/kli" ]; then
-        git clone --depth 1 "https://github.com/kalisio/kli.git" "$WORK_PATH/kli"
-        cd "$WORK_PATH/kli" && nvm exec "$NODE_VERSION" yarn install && cd ~-
+    if [ ! -d "$WORK_DIR/kli" ]; then
+        git clone --depth 1 "https://github.com/kalisio/kli.git" "$WORK_DIR/kli"
+        cd "$WORK_DIR/kli" && nvm exec "$NODE_VERSION" yarn install && cd ~-
     fi
 
-    cd "$WORK_PATH"
-    nvm exec "$NODE_VERSION" node "$WORK_PATH/kli" "$KLI_FILE" --clone --shallow-clone
-    nvm exec "$NODE_VERSION" node "$WORK_PATH/kli" "$KLI_FILE" --install
-    nvm exec "$NODE_VERSION" node "$WORK_PATH/kli" "$KLI_FILE" --link --link-folder "$WORK_PATH/yarn-links"
+    cd "$WORK_DIR"
+    nvm exec "$NODE_VERSION" node "$WORK_DIR/kli/index.js" "$KLI_FILE" --clone --shallow-clone
+    nvm exec "$NODE_VERSION" node "$WORK_DIR/kli/index.js" "$KLI_FILE" --install
+    nvm exec "$NODE_VERSION" node "$WORK_DIR/kli/index.js" "$KLI_FILE" --link --link-folder "$WORK_DIR/yarn-links"
     cd ~-
 }
