@@ -435,7 +435,7 @@ deploy_gh_pages() {
     # Add new doc and commit (add a .nojekyll file to skip Github jekyll processing)
     cd "$WORK_DIR" && touch .nojekyll && git add --all && git commit -m "$COMMIT_MESSAGE"
     # Push
-    git push origin "$BRANCH"
+    git push origin "$DOCS_BRANCH"
 }
 
 ### Log
