@@ -397,6 +397,20 @@ get_git_changed_files() {
     cd ~-
 }
 
+get_git_commit_author_name() {
+    local REPO_ROOT="$1"
+    cd "$REPO_ROOT"
+    git show -s --pretty=%an
+    cd ~-
+}
+
+get_git_commit_author_email() {
+    local REPO_ROOT="$1"
+    cd "$REPO_ROOT"
+    git show -s --pretty=%ae
+    cd ~-
+}
+
 ### Github
 ###
 
