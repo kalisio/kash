@@ -1,0 +1,14 @@
+name: Run tests
+on: [push]
+
+jobs:
+  run_tests:
+    name: Run tests
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Run tests
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+        run: bash ./scripts/run_tests.sh
