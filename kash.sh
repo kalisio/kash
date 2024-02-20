@@ -321,68 +321,71 @@ parse_semver() {
 get_git_tag() {
     local REPO_ROOT="$1"
     cd "$REPO_ROOT"
-    case "$CI_ID" in
-        github)
-            if [ "$GITHUB_REF_TYPE" = "tag" ]; then
-               echo "$GITHUB_REF_NAME"
-            fi
-            ;;
-        gitlab)
-            echo "${CI_COMMIT_TAG:-}"
-            ;;
-        travis)
-            echo "${TRAVIS_TAG:-}"
-            ;;
-        *)
-            git tag --points-at
-            ;;
-    esac
+    git tag --points-at
+    # case "$CI_ID" in
+    #     github)
+    #         if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+    #            echo "$GITHUB_REF_NAME"
+    #         fi
+    #         ;;
+    #     gitlab)
+    #         echo "${CI_COMMIT_TAG:-}"
+    #         ;;
+    #     travis)
+    #         echo "${TRAVIS_TAG:-}"
+    #         ;;
+    #     *)
+    #         git tag --points-at
+    #         ;;
+    # esac
     cd ~-
 }
 
 get_git_branch() {
     local REPO_ROOT="$1"
     cd "$REPO_ROOT"
-    case "$CI_ID" in
-        github)
-            if [ "$GITHUB_REF_TYPE" = "branch" ]; then
-               echo "$GITHUB_REF_NAME"
-            fi
-            ;;
-        gitlab)
-            if [ -z "$CI_COMMIT_TAG" ]; then
-                echo "$CI_COMMIT_REF_NAME"
-            fi
-            ;;
-        travis)
-            if [ -z "$TRAVIS_TAG" ]; then
-                echo "$TRAVIS_BRANCH"
-            fi
-            ;;
-        *)
-            git branch --show-current
-            ;;
-    esac
+    git branch --show-current
+    # case "$CI_ID" in
+    #     github)
+    #         if [ "$GITHUB_REF_TYPE" = "branch" ]; then
+    #            echo "$GITHUB_REF_NAME"
+    #         fi
+    #         ;;
+    #     gitlab)
+    #         if [ -z "$CI_COMMIT_TAG" ]; then
+    #             echo "$CI_COMMIT_REF_NAME"
+    #         fi
+    #         ;;
+    #     travis)
+    #         if [ -z "$TRAVIS_TAG" ]; then
+    #             echo "$TRAVIS_BRANCH"
+    #         fi
+    #         ;;
+    #     *)
+    #         git branch --show-current
+    #         ;;
+    # esac
     cd ~-
 }
 
 get_git_commit_sha() {
     local REPO_ROOT="$1"
     cd "$REPO_ROOT"
-    case "$CI_ID" in
-        github)
-            echo "$GITHUB_SHA"
-            ;;
-        gitlab)
-            echo "$CI_COMMIT_SHA"
-            ;;
-        travis)
-            echo "$TRAVIS_COMMIT"
-            ;;
-        *)
-            git rev-parse HEAD
-            ;;
-    esac
+    git rev-parse HEAD
+    # case "$CI_ID" in
+    #     github)
+    #         echo "$GITHUB_SHA"
+    #         ;;
+    #     gitlab)
+    #         echo "$CI_COMMIT_SHA"
+    #         ;;
+    #     travis)
+    #         echo "$TRAVIS_COMMIT"
+    #         ;;
+    #     *)
+    #         git rev-parse HEAD
+    #         ;;
+    # esac
     cd ~-
 }
 
