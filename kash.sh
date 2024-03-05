@@ -738,3 +738,34 @@ run_kli() {
     nvm exec "$NODE_VERSION" node "$WORK_DIR/kli/index.js" "$KLI_FILE" --link --link-folder "$WORK_DIR/yarn-links"
     cd ~-
 }
+
+setup_ci_workspace() {
+    local ROOT_DIR="$1"
+    local DEVELOPMENT_REPO_URL="$2"
+    local KLI_BASE_DIR="$3"
+    local KLI_RUN="${4:-full}"
+
+    local WORKSPACE_DIR=$(dirname "$ROOT_DIR")
+    local DEVELOPMENT_DIR="$WORKSPACE_DIR/development"
+
+    # clone development in $WORKSPACE_DIR
+    git clone --depth 1 "$DEVELOPMENT_REPO_URL" "$DEVELOPMENT_DIR"
+
+    # select kli file for dependencies
+    init_app_infos "$ROOT_DIR" "$DEVELOPMENT_DIR/$KLI_BASE_DIR"
+    KLI_FILE=$(get_app_kli_file)
+
+    echo "About to setup workspace using $KLI_FILE ..."
+
+    # clone kli in $WORKSPACE_DIR
+    git clone --depth 1 "https://github.com/kalisio/kli.git" "$WORKSPACE_DIR/kli"
+    cd "$WORKSPACE_DIR/kli" && nvm exec "$WORKSPACE_NODE" yarn install && cd ~-
+
+    cd "$WORKSPACE_DIR"
+    nvm exec "$WORKSPACE_NODE" node "$WORKSPACE_DIR/kli/index.js" "$KLI_FILE" --clone --shallow-clone
+    if [ "$KLI_RUN" = full ]; then
+        nvm exec "$WORKSPACE_NODE" node "$WORKSPACE_DIR/kli/index.js" "$KLI_FILE" --install
+        nvm exec "$WORKSPACE_NODE" node "$WORKSPACE_DIR/kli/index.js" "$KLI_FILE" --link --link-folder "$WORKSPACE_DIR/yarn-links"
+    fi
+    cd ~-
+}
