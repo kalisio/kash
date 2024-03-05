@@ -449,6 +449,15 @@ get_git_commit_sha() {
 #     cd ~-
 # }
 
+# Returns current commit message
+# Arg1: the repository root
+get_git_commit_message() {
+    local REPO_ROOT="$1"
+    cd "$REPO_ROOT"
+    git show -s --pretty=%B
+    cd ~-
+}
+
 # Returns current commit author name
 # Arg1: the repository root
 get_git_commit_author_name() {

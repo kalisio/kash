@@ -33,7 +33,8 @@ case "$CI_ID" in
         ;;
 esac
 
-echo "Commiter is $(get_git_commit_author_name "$ROOT_DIR") <$(get_git_commit_author_email "$ROOT_DIR")>"
+echo "Committer is $(get_git_commit_author_name "$ROOT_DIR") <$(get_git_commit_author_email "$ROOT_DIR")>"
+echo "Commit message is $(get_git_commit_message "$ROOT_DIR")"
 
 git clone --depth 1 https://github.com/kalisio/feathers-s3.git "$TMP_DIR/feathers-s3.master"
 git clone --depth 1 --branch v1.3.0 https://github.com/kalisio/feathers-s3.git "$TMP_DIR/feathers-s3.v1.3.0"
