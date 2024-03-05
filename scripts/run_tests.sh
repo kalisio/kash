@@ -8,6 +8,18 @@ ROOT_DIR=$(dirname "$THIS_DIR")
 
 . "$ROOT_DIR/kash.sh"
 
+### Github Actions
+
+init_github() {
+    install_reqs yq age sops nvm node16 node18 node20 mongo4 mongo5 mongo6
+}
+
+begin_group "Init $CI_ID"
+
+init_"${CI_ID}"
+
+end_group "Init $CI_ID"
+
 git clone --depth 1 https://github.com/kalisio/feathers-s3.git "$TMP_DIR/feathers-s3.master"
 git clone --depth 1 --branch v1.3.0 https://github.com/kalisio/feathers-s3.git "$TMP_DIR/feathers-s3.v1.3.0"
 
@@ -16,5 +28,26 @@ git clone --depth 1 --branch v1.3.0 https://github.com/kalisio/feathers-s3.git "
 
 [ "$(get_git_tag "$TMP_DIR/feathers-s3.master" )" != "" ] && exit 1
 [ "$(get_git_tag "$TMP_DIR/feathers-s3.v1.3.0" )" != "v1.3.0" ] && exit 1
+
+git clone --depth 1 https://github.com/kalisio/kApp.git "$TMP_DIR/kApp.master"
+git clone --depth 1 --branch test-v1.0 https://github.com/kalisio/kApp.git "$TMP_DIR/kApp.v1.0"
+
+[ "$(get_git_branch "$TMP_DIR/kApp.master" )" != "master" ] && exit 1
+[ "$(get_git_branch "$TMP_DIR/kApp.v1.0" )" != "test-v1.0" ] && exit 1
+
+[ "$(get_git_tag "$TMP_DIR/kApp.master" )" != "" ] && exit 1
+[ "$(get_git_tag "$TMP_DIR/kApp.v1.0" )" != "" ] && exit 1
+
+init_app_infos "$TMP_DIR/kApp.master" "$TMP_DIR/kli"
+
+[ "$(get_app_name)" != "kapp" ] && exit 1
+# [ "$(get_app_version)" != "kapp" ] && exit 1
+[ "$(get_app_flavor)" != "dev" ] && exit 1
+
+init_app_infos "$TMP_DIR/kApp.v1.0" "$TMP_DIR/kli"
+
+[ "$(get_app_name)" != "kapp" ] && exit 1
+[ "$(get_app_version)" != "1.0.0" ] && exit 1
+[ "$(get_app_flavor)" != "test" ] && exit 1
 
 exit 0

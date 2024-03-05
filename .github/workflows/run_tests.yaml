@@ -9,6 +9,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
       - name: Run tests
-        env:
-          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+        # env:
+        #   SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
         run: bash ./scripts/run_tests.sh
