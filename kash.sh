@@ -449,10 +449,10 @@ get_git_commit_sha() {
 #     cd ~-
 # }
 
-# Returns current commit author
+# Returns current commit commiter infos (name & email)
 # Arg1: the repository root
 # NOTE: output string is suitable to use with --author option in 'git commit'
-get_git_commit_author() {
+get_git_committer_infos() {
     local REPO_ROOT="$1"
     cd "$REPO_ROOT"
     local NAME=$(git show -s --pretty=%cn)
