@@ -455,8 +455,8 @@ get_git_commit_sha() {
 get_git_commit_author() {
     local REPO_ROOT="$1"
     cd "$REPO_ROOT"
-    local NAME=$(git show -s --pretty=%an)
-    local EMAIL=$(git show -s --pretty=%ae)
+    local NAME=$(git show -s --pretty=%cn)
+    local EMAIL=$(git show -s --pretty=%ce)
     cd ~-
 
     echo "$NAME <$EMAIL>"

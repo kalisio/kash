@@ -33,6 +33,8 @@ case "$CI_ID" in
         ;;
 esac
 
+echo "Commiter is $(get_git_commit_author "$ROOT_DIR" )"
+
 git clone --depth 1 https://github.com/kalisio/feathers-s3.git "$TMP_DIR/feathers-s3.master"
 git clone --depth 1 --branch v1.3.0 https://github.com/kalisio/feathers-s3.git "$TMP_DIR/feathers-s3.v1.3.0"
 
