@@ -178,8 +178,9 @@ install_mongo4() {
             local MONGODB_SUFFIX=debian10-${MONGODB4_VERSION}
             ;;
         ubuntu)
-            curl -OLsS http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.21_amd64.deb
-            DEBIAN_FRONTEND=noninteractive && sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.21_amd64.deb
+            # curl -OLsS http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.21_amd64.deb
+            # DEBIAN_FRONTEND=noninteractive && sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.21_amd64.deb
+            DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get --no-install-recommends --yes install libssl1.1
             local MONGODB_SUFFIX=ubuntu2004-${MONGODB4_VERSION}
             ;;
         *)
@@ -205,8 +206,9 @@ install_mongo5() {
             local MONGODB_SUFFIX=debian11-${MONGODB5_VERSION}
             ;;
         ubuntu)
-            curl -OLsS http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.21_amd64.deb
-            DEBIAN_FRONTEND=noninteractive && sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.21_amd64.deb
+            # curl -OLsS http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.21_amd64.deb
+            # DEBIAN_FRONTEND=noninteractive && sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.21_amd64.deb
+            DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get --no-install-recommends --yes install libssl1.1
             local MONGODB_SUFFIX=ubuntu2004-${MONGODB5_VERSION}
             ;;
         *)
