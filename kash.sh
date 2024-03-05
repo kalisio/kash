@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ### Variables provided by this script
-###   - TMP_PATH: a path where to write temp files
+###   - TMP_DIR: a path where to write temp files
 ###   - OS_ID: debian or ubuntu or alpine ...
 ###   - OS_VERSION:
 ###   - CI: true or false
@@ -85,6 +85,8 @@ MONGODB5_VERSION=5.0.24
 MONGODB6_VERSION=6.0.13
 MONGODB7_VERSION=7.0.5
 
+# Install yq in ~/.local/bin
+# Arg1: a writable folder where to write downloaded files
 install_yq() {
     local DL_ROOT=$1
     local DL_PATH="$DL_ROOT/yq"
@@ -105,6 +107,8 @@ install_yq() {
     cd ~-
 }
 
+# Install age in ~/.local/bin
+# Arg1: a writable folder where to write downloaded files
 install_age() {
     local DL_ROOT=$1
     local DL_PATH="$DL_ROOT/age"
@@ -120,6 +124,8 @@ install_age() {
     cd ~-
 }
 
+# Install sops in ~/.local/bin
+# Arg1: a writable folder where to write downloaded files
 install_sops() {
     local DL_ROOT=$1
     local DL_PATH="$DL_ROOT/sops"
@@ -135,6 +141,8 @@ install_sops() {
     cd ~-
 }
 
+# Install code climate test reporter in ~/.local/bin
+# Arg1: a writable folder where to write downloaded files
 install_cc_test_reporter() {
     local DL_ROOT=$1
     local DL_PATH="$DL_ROOT/cc"
@@ -147,6 +155,10 @@ install_cc_test_reporter() {
     cd ~-
 }
 
+# Make sure nvm is installed
+# Arg1: a writable folder where to write downloaded files
+# NOTE: also define 'yarn' as a default package, ie. it'll be automatically
+# installed with each node version
 install_nvm() {
     local DL_ROOT=$1
     local DL_PATH="$DL_ROOT/nvm"
@@ -159,18 +171,24 @@ install_nvm() {
     cd ~-
 }
 
+# Install node16, requires nvm to be installed
 install_node16() {
     bash -i -c "nvm install ${NODE16_VERSION}"
 }
 
+# Install node18, requires nvm to be installed
 install_node18() {
     bash -i -c "nvm install ${NODE18_VERSION}"
 }
 
+# Install node20, requires nvm to be installed
 install_node20() {
     bash -i -c "nvm install ${NODE20_VERSION}"
 }
 
+# Install mongo4 in ~/.local/bin/mongo4
+# Arg1: a writable folder where to write downloaded files
+# NOTE: each mongo version is installed in a separate folder to support multiple versions
 install_mongo4() {
     local DL_ROOT=$1
     local DL_PATH="$DL_ROOT/mongo4"
@@ -197,6 +215,9 @@ install_mongo4() {
     cd ~-
 }
 
+# Install mongo5 in ~/.local/bin/mongo5
+# Arg1: a writable folder where to write downloaded files
+# NOTE: each mongo version is installed in a separate folder to support multiple versions
 install_mongo5() {
     local DL_ROOT=$1
     local DL_PATH="$DL_ROOT/mongo5"
@@ -223,6 +244,9 @@ install_mongo5() {
     cd ~-
 }
 
+# Install mongo6 in ~/.local/bin/mongo6
+# Arg1: a writable folder where to write downloaded files
+# NOTE: each mongo version is installed in a separate folder to support multiple versions
 install_mongo6() {
     local DL_ROOT=$1
     local DL_PATH="$DL_ROOT/mongo6"
@@ -248,6 +272,9 @@ install_mongo6() {
     cd ~-
 }
 
+# Install mongo7 in ~/.local/bin/mongo7
+# Arg1: a writable folder where to write downloaded files
+# NOTE: each mongo version is installed in a separate folder to support multiple versions
 install_mongo7() {
     local DL_ROOT=$1
     local DL_PATH="$DL_ROOT/mongo7"
@@ -273,6 +300,8 @@ install_mongo7() {
     cd ~-
 }
 
+# Install listed requirements
+# Usage: install_reqs mongo7 nvm node16 yq
 install_reqs() {
     mkdir -p "$TMP_DIR/dl"
 
@@ -282,12 +311,14 @@ install_reqs() {
     done
 }
 
+# Select which node version is active (ie. which one is started when calling node)
 use_node() {
     local VERSION=$1
 
     nvm use "$VERSION"
 }
 
+# Select which mongo version is active (ie. which one is started when calling mongod)
 use_mongo() {
     local VERSION=$1
 
@@ -311,6 +342,8 @@ use_mongo() {
 ### Utils
 ###
 
+# Try to parse semver
+# Define SEMVER variable as an array with [0] = major, [1] = minor, [2] = patch
 parse_semver() {
     local REGEXP="^([0-9]+)\.([0-9]+)\.([0-9]+)"
     [[ "$1" =~ $REGEXP ]]
@@ -320,6 +353,8 @@ parse_semver() {
 ### Git
 ###
 
+# Returns the current git tag (or empty string if not on a tag)
+# Arg1: the repository root
 get_git_tag() {
     local REPO_ROOT="$1"
     cd "$REPO_ROOT"
@@ -344,6 +379,8 @@ get_git_tag() {
     cd ~-
 }
 
+# Returns the current git branch (might be empty string if on a tag and repo was checked out with --depth 1)
+# Arg1: the repository root
 get_git_branch() {
     local REPO_ROOT="$1"
     cd "$REPO_ROOT"
@@ -372,6 +409,8 @@ get_git_branch() {
     cd ~-
 }
 
+# Returns the current git commit sha, always defined
+# Arg1: the repository root
 get_git_commit_sha() {
     local REPO_ROOT="$1"
     cd "$REPO_ROOT"
@@ -394,17 +433,25 @@ get_git_commit_sha() {
     cd ~-
 }
 
-get_git_changed_files() {
-    local COMMIT0=${1:-HEAD}
-    local COMMIT1=${2:-"$COMMIT0"^}
+# Returns the list of changed files between two commits
+# Arg1: commit to (default to latest known)
+# Arg2: commit from (defaults to the one before arg1)
+# NOTE: requires git history to work (ie probably not with shallow clone)
+# NOTE: needs to be called from inside a git repo
+# get_git_changed_files() {
+#     local COMMIT0=${1:-HEAD}
+#     local COMMIT1=${2:-"$COMMIT0"^}
 
-    cd "$REPO_ROOT"
-    if [ -z "$CI_ID" ]; then
-        git diff --name-only "$COMMIT0" "$COMMIT1"
-    fi
-    cd ~-
-}
+#     cd "$REPO_ROOT"
+#     if [ -z "$CI_ID" ]; then
+#         git diff --name-only "$COMMIT0" "$COMMIT1"
+#     fi
+#     cd ~-
+# }
 
+# Returns current commit author
+# Arg1: the repository root
+# NOTE: output string is suitable to use with --author option in 'git commit'
 get_git_commit_author() {
     local REPO_ROOT="$1"
     cd "$REPO_ROOT"
@@ -418,6 +465,12 @@ get_git_commit_author() {
 ### Github
 ###
 
+# Deploys generated documentation using github pages system.
+# Arg1: the repository url
+# Arg2: the folder where documentation has been generated
+# Arg3: the author to use when commiting the updated documentation.
+# Arg4: the commit message.
+# Arg5: the branch where to commit the documentation (defaults to gh-pages)
 deploy_gh_pages() {
     local REPO_URL="$1"
     local DOCS_DIR="$2"
@@ -446,6 +499,9 @@ KASH_TXT_E="m"
 KASH_TXT_BOLD="${KASH_TXT_B}1${KASH_TXT_E}"
 KASH_TXT_RESET="${KASH_TXT_B}0${KASH_TXT_E}"
 
+# Creates a foldable log section in CI systems
+# Arg1: the section title
+# NOTE: foldable section must be terminated using end_group and the same $TITLE
 begin_group() {
     local TITLE="$1"
 
@@ -461,6 +517,8 @@ begin_group() {
     fi
 }
 
+# Terminates a foldable log section in CI systems
+# Arg1: the section title
 end_group() {
     local TITLE="$1"
 
@@ -476,6 +534,9 @@ end_group() {
 ### Slack
 ###
 
+# Push a simple message to a slack channel
+# Arg1: the Slack webhook where to push the message
+# Arg2: the message (can be markdown formatted)
 slack_log() {
     local URL="$1"
     local MSG="$2"
@@ -484,6 +545,10 @@ slack_log() {
     curl -X POST -H "Content-type: application/json" --data "$PAYLOAD" "$URL"
 }
 
+# Push a colored message to a slack channel
+# Arg1: the Slack webhook where to push the message
+# Arg2: the message (can be markdown formatted)
+# Arg3: the color to use (as and hex value)
 slack_color_log() {
     local URL="$1"
     local MSG="$2"
@@ -496,6 +561,9 @@ slack_color_log() {
 ### SOPS
 ###
 
+# Generates the decrypted filename for the given encrypted file
+# Arg1: the encrypted filename
+# NOTE: decrypted file will be XXXXX.dec.ext
 enc2dec() {
     local ENC="$1"
     local BASENAME
@@ -507,6 +575,9 @@ enc2dec() {
     echo "$DEC"
 }
 
+# Generates the encrypted filename for the given decrypted file
+# Arg1: the decrypted filename
+# NOTE: decrypted file will be XXXXX.dec.ext
 dec2enc() {
     local DEC="$1"
     local BASENAME
@@ -518,7 +589,9 @@ dec2enc() {
     echo "$ENC"
 }
 
-# Loads environment variables from an encrypted env file
+# Loads environment variables from encrypted env files
+# Usage: load_env_files /path/to/file1.enc.env /path/to/file2.enc.env /path/to/file3.enc.env
+# NOTE: requires SOPS_AGE_KEY or SOPS_AGE_KEY_FILE to be defined. If not, will defaults to $DEVELOPMENT_DIR/age/keys.txt
 load_env_files() {
     # Use developer key unless one of SOPS_AGE_KEY or SOPS_AGE_KEY_FILE is already defined (eg. CI)
     if [ -z "${SOPS_AGE_KEY-}" ] && [ -z "${SOPS_AGE_KEY_FILE-}" ]; then
@@ -535,7 +608,9 @@ load_env_files() {
     done
 }
 
-# Decrypt files containing secrets and define an environment variable
+# Decrypt files containing secrets and define an environment variable pointing on the decrypted filename
+# Usage: load_value_files /path/to/FOO_PASSWORD.enc.value /path/to/BLAH_SECRET.enc.value
+# Will decrypt the files and define FOO_PASSWORD to the decrypted filename. It can be used to feed the decrypted value from stdin.
 load_value_files() {
     # Use developer key unless one of SOPS_AGE_KEY or SOPS_AGE_KEY_FILE is already defined (eg. CI)
     if [ -z "${SOPS_AGE_KEY-}" ] && [ -z "${SOPS_AGE_KEY_FILE-}" ]; then
@@ -560,6 +635,12 @@ load_value_files() {
 ### Kalisio
 ###
 
+# Gather information about an app
+# Defines APP_INFOS variable as an array. This array contains the app name, the app version,
+# the flavor based on the git tag and branch ...
+# Arg1: the repository root
+# Arg2: the folder where to search for kli files
+# NOTE: the results should be extracted using get_app_xxx functions below.
 init_app_infos() {
     local REPO_ROOT="$1"
     local KLI_BASE="$2"
@@ -600,30 +681,46 @@ init_app_infos() {
     APP_INFOS=("$APP_NAME" "$APP_VERSION" "$APP_FLAVOR" "GIT_TAG" "GIT_BRANCH" "$APP_KLI")
 }
 
+# Extract app name from app infos
+# NOTE: requires a call to init_app_infos first
 get_app_name() {
     echo "${APP_INFOS[0]}"
 }
 
+# Extract app version from app infos
+# NOTE: requires a call to init_app_infos first
 get_app_version() {
     echo "${APP_INFOS[1]}"
 }
 
+# Extract app flavor from app infos
+# NOTE: requires a call to init_app_infos first
 get_app_flavor() {
     echo "${APP_INFOS[2]}"
 }
 
+# Extract app tag from app infos
+# NOTE: requires a call to init_app_infos first
 get_app_tag() {
     echo "${APP_INFOS[3]}"
 }
 
+# Extract app branch from app infos
+# NOTE: requires a call to init_app_infos first
 get_app_branch() {
     echo "${APP_INFOS[4]}"
 }
 
+# Extract app kli file from app infos
+# NOTE: requires a call to init_app_infos first
 get_app_kli_file() {
     echo "${APP_INFOS[5]}"
 }
 
+# Runs kli in a separate folder.
+# Arg1: the folder where to install everything
+# Arg2: the kli file to use
+# Arg3: the node version to use
 run_kli() {
     local WORK_DIR="$1"
     local KLI_FILE="$2"
