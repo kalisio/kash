@@ -14,11 +14,13 @@ init_github() {
     install_reqs yq age sops nvm node16 node18 node20 mongo4 mongo5 mongo6
 }
 
-begin_group "Init $CI_ID"
+if [ "$CI" = true ]; then
+    begin_group "Init $CI_ID"
 
-init_"${CI_ID}"
+    init_"${CI_ID}"
 
-end_group "Init $CI_ID"
+    end_group "Init $CI_ID"
+fi
 
 case "$CI_ID" in
     github)
@@ -39,6 +41,8 @@ git clone --depth 1 --branch v1.3.0 https://github.com/kalisio/feathers-s3.git "
 
 [ "$(get_git_tag "$TMP_DIR/feathers-s3.master" )" != "" ] && exit 1
 [ "$(get_git_tag "$TMP_DIR/feathers-s3.v1.3.0" )" != "v1.3.0" ] && exit 1
+
+[ "$(get_git_commit_sha "$TMP_DIR/feathers-s3.v1.3.0" )" != "e28f53c386a2f74de7bdee7231b97e7150177cc7" ] && exit 1
 
 git clone --depth 1 https://github.com/kalisio/kApp.git "$TMP_DIR/kApp.master"
 git clone --depth 1 --branch test-v1.0 https://github.com/kalisio/kApp.git "$TMP_DIR/kApp.v1.0"

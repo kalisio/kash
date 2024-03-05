@@ -31,6 +31,10 @@ if [ "${GITHUB_ACTIONS:-}" = true ]; then
     # Add ~/.local/bin to PATH
     mkdir -p "$HOME/.local/bin"
     export PATH=$PATH:$HOME/.local/bin
+
+    # Make sure package lists are up to date
+    # sudo apt-get update
+
 elif [ "${GITLAB_CI:-}" = true ]; then
     CI_ID="gitlab"
 elif [  "${TRAVIS:-}" = true ]; then
@@ -178,9 +182,7 @@ install_mongo4() {
             local MONGODB_SUFFIX=debian10-${MONGODB4_VERSION}
             ;;
         ubuntu)
-            # curl -OLsS http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.21_amd64.deb
-            # DEBIAN_FRONTEND=noninteractive && sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.21_amd64.deb
-            DEBIAN_FRONTEND=noninteractive && sudo apt-get update && sudo apt-get --no-install-recommends --yes install libssl1.1
+            DEBIAN_FRONTEND=noninteractive && sudo apt-get --no-install-recommends --yes install libssl1.1
             local MONGODB_SUFFIX=ubuntu2004-${MONGODB4_VERSION}
             ;;
         *)
@@ -206,9 +208,7 @@ install_mongo5() {
             local MONGODB_SUFFIX=debian11-${MONGODB5_VERSION}
             ;;
         ubuntu)
-            # curl -OLsS http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.21_amd64.deb
-            # DEBIAN_FRONTEND=noninteractive && sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.21_amd64.deb
-            DEBIAN_FRONTEND=noninteractive && sudo apt-get update && sudo apt-get --no-install-recommends --yes install libssl1.1
+            DEBIAN_FRONTEND=noninteractive && sudo apt-get --no-install-recommends --yes install libssl1.1
             local MONGODB_SUFFIX=ubuntu2004-${MONGODB5_VERSION}
             ;;
         *)
@@ -324,6 +324,7 @@ get_git_tag() {
     local REPO_ROOT="$1"
     cd "$REPO_ROOT"
     git tag --points-at
+
     # case "$CI_ID" in
     #     github)
     #         if [ "$GITHUB_REF_TYPE" = "tag" ]; then
@@ -347,6 +348,7 @@ get_git_branch() {
     local REPO_ROOT="$1"
     cd "$REPO_ROOT"
     git branch --show-current
+
     # case "$CI_ID" in
     #     github)
     #         if [ "$GITHUB_REF_TYPE" = "branch" ]; then
@@ -374,6 +376,7 @@ get_git_commit_sha() {
     local REPO_ROOT="$1"
     cd "$REPO_ROOT"
     git rev-parse HEAD
+
     # case "$CI_ID" in
     #     github)
     #         echo "$GITHUB_SHA"
@@ -571,11 +574,15 @@ init_app_infos() {
     GIT_TAG=$(get_git_tag "$REPO_ROOT")
     local GIT_BRANCH
     GIT_BRANCH=$(get_git_branch "$REPO_ROOT")
-    if [[ "$GIT_TAG" =~  prod-v* ]]; then
+
+    local PROD_REGEX="^prod-v"
+    local TEST_REGEX="^test-|-test$"
+
+    if [[ "$GIT_TAG" =~ $PROD_REGEX ]]; then
         APP_FLAVOR=prod
         APP_KLI="$APP_NAME-$APP_VERSION"
     else
-        if [[ "$GIT_BRANCH" =~ ^test-*|*-test$ ]]; then
+        if [[ "$GIT_BRANCH" =~ $TEST_REGEX ]]; then
             APP_FLAVOR="test"
             parse_semver "$APP_VERSION"
             APP_KLI="$APP_NAME-${SEMVER[0]}.${SEMVER[1]}"
