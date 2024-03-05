@@ -449,17 +449,22 @@ get_git_commit_sha() {
 #     cd ~-
 # }
 
-# Returns current commit commiter infos (name & email)
+# Returns current commit author name
 # Arg1: the repository root
-# NOTE: output string is suitable to use with --author option in 'git commit'
-get_git_committer_infos() {
+get_git_commit_author_name() {
     local REPO_ROOT="$1"
     cd "$REPO_ROOT"
-    local NAME=$(git show -s --pretty=%cn)
-    local EMAIL=$(git show -s --pretty=%ce)
+    git show -s --pretty=%an
     cd ~-
+}
 
-    echo "$NAME <$EMAIL>"
+# Returns current commit author email
+# Arg1: the repository root
+get_git_commit_author_email() {
+    local REPO_ROOT="$1"
+    cd "$REPO_ROOT"
+    git show -s --pretty=%ae
+    cd ~-
 }
 
 ### Github
@@ -468,15 +473,17 @@ get_git_committer_infos() {
 # Deploys generated documentation using github pages system.
 # Arg1: the repository url
 # Arg2: the folder where documentation has been generated
-# Arg3: the author to use when commiting the updated documentation.
-# Arg4: the commit message.
-# Arg5: the branch where to commit the documentation (defaults to gh-pages)
+# Arg3: the author name to use when commiting the updated documentation.
+# Arg4: the author email to use when commiting the updated documentation.
+# Arg5: the commit message.
+# Arg6: the branch where to commit the documentation (defaults to gh-pages)
 deploy_gh_pages() {
     local REPO_URL="$1"
     local DOCS_DIR="$2"
-    local COMMIT_AUTHOR="$3"
-    local COMMIT_MESSAGE="$4"
-    local DOCS_BRANCH="${5:-gh-pages}"
+    local COMMIT_AUTHOR_NAME="$3"
+    local COMMIT_AUTHOR_EMAIL="$4"
+    local COMMIT_MESSAGE="$5"
+    local DOCS_BRANCH="${6:-gh-pages}"
 
     local WORK_DIR
     WORK_DIR="$(mktemp -d -p "$TMP_DIR" gh_pages.XXXXXX)"
@@ -486,7 +493,7 @@ deploy_gh_pages() {
     # Copy built doc
     cp -fR "$DOCS_DIR"/* "$WORK_DIR"
     # Add new doc and commit (add a .nojekyll file to skip Github jekyll processing)
-    cd "$WORK_DIR" && touch .nojekyll && git add --all && git commit --author "$COMMIT_AUTHOR" --message "$COMMIT_MESSAGE"
+    cd "$WORK_DIR" && touch .nojekyll && git add --all && git -c user.name="$COMMIT_AUTHOR_NAME" -c user.email="$COMMIT_AUTHOR_EMAIL" commit --message "$COMMIT_MESSAGE"
     # Push
     git push origin "$DOCS_BRANCH"
 }
