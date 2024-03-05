@@ -20,6 +20,17 @@ init_"${CI_ID}"
 
 end_group "Init $CI_ID"
 
+case "$CI_ID" in
+    github)
+        [ "$(get_git_branch "$ROOT_DIR" )" != "$GITHUB_REF_NAME" ] && exit 1
+        ;;
+    gitlab)
+        [ "$(get_git_branch "$ROOT_DIR" )" != "$CI_COMMIT_REF_NAME" ] && exit 1
+        ;;
+    *)
+        ;;
+esac
+
 git clone --depth 1 https://github.com/kalisio/feathers-s3.git "$TMP_DIR/feathers-s3.master"
 git clone --depth 1 --branch v1.3.0 https://github.com/kalisio/feathers-s3.git "$TMP_DIR/feathers-s3.v1.3.0"
 
