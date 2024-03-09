@@ -155,6 +155,14 @@ install_cc_test_reporter() {
     cd ~-
 }
 
+# Sends test coverage to code climate
+# Arg1: code climate identifier for authentication
+send_coverage_to_cc() {
+    local CC_TEST_REPORTER_ID=$1
+    ~/.local/bin/cc-test-reporter format-coverage -t lcov coverage/lcov.info
+    ~/.local/bin/cc-test-reporter upload-coverage -r $CC_TEST_REPORTER_ID
+}
+
 # Make sure nvm is installed
 # Arg1: a writable folder where to write downloaded files
 # NOTE: also define 'yarn' as a default package, ie. it'll be automatically
