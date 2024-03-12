@@ -582,6 +582,54 @@ slack_color_log() {
     curl -X POST -H "Content-type: application/json" --data "$PAYLOAD" "$URL"
 }
 
+# Generate a Slack message
+# Arg1: the repository root
+# Arg2: the repository name (in the format owner/repo)
+# Arg3: the build status ("failed" or "passed")
+generate_slack_message() {
+    local ROOT_DIR="$1"
+    local APP="$2"
+    local BUILD_STATUS="$3"
+    local REPO_NAME="${APP##*/}"
+    local COMMIT_SHA
+    COMMIT_SHA=$(get_git_commit_sha "$ROOT_DIR")
+    local COMMIT_URL
+    COMMIT_URL="https://github.com/kalisio/$REPO_NAME/commit/$COMMIT_SHA"
+    local COMMIT_CHECKS_URL
+    COMMIT_CHECKS_URL="https://github.com/kalisio/$REPO_NAME/commit/$COMMIT_SHA/checks"
+    local AUTHOR
+    AUTHOR=$(get_git_commit_author_name "$THIS_DIR")
+
+    if [ "$CI_ID" = "github" ]; then
+        echo "<${COMMIT_CHECKS_URL}|Build> <${COMMIT_URL}|${COMMIT_SHA}> of $APP by $AUTHOR $BUILD_STATUS"
+    else
+        echo "Build <${COMMIT_URL}|${COMMIT_SHA}> of $APP by $AUTHOR $BUILD_STATUS"
+    fi
+}
+
+# Send a Slack message with conditional formatting based on the build status and Node version
+# Arg1: the repository root
+# Arg2: the node version to use (16, 18 ...)
+# Arg3: the repository name (in the format owner/repo)
+# Arg4: the build status ("failed" or "passed")
+send_slack_message() {
+    local ROOT_DIR="$1"
+    local NODE_VERSION="$2"
+    local APP="$3"
+    local BUILD_STATUS="$4"
+    local MESSAGE
+    MESSAGE=$(generate_slack_message "$ROOT_DIR" "$APP" "$BUILD_STATUS")
+    local COLOR
+    if [ "$BUILD_STATUS" = "failed" ]; then
+        COLOR="#a30200"
+    else
+        COLOR="#2eb886"
+    fi
+    if [ "$NODE_VERSION" -eq 16 ]; then
+        slack_color_log "$SLACK_WEBHOOK_LIBS" "$MESSAGE" "$COLOR"
+    fi
+}
+
 ### SOPS
 ###
 
