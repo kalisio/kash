@@ -607,7 +607,7 @@ generate_slack_message() {
     fi
 }
 
-# Send a Slack message with conditional formatting based on the build status and Node version
+# Send a Slack message based on node version
 # Arg1: the repository root
 # Arg2: the node version to use (16, 18 ...)
 # Arg3: the repository name (in the format owner/repo)
