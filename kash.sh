@@ -766,3 +766,29 @@ run_kli() {
     fi
     cd ~-
 }
+
+# Gather information about an librarie
+# Defines LIB_INFOS variable as an array. This array contains the lib name & the lib version
+# Arg1: the repository root
+# NOTE: the results should be extracted using get_lib_xxx functions below.
+init_lib_infos() {
+    local REPO_ROOT="$1"
+    local LIB_NAME
+    LIB_NAME=$(node -p -e "require(\"$REPO_ROOT/package.json\").name")
+    local LIB_VERSION
+    LIB_VERSION=$(node -p -e "require(\"$REPO_ROOT/package.json\").version")
+
+    LIB_INFOS=("$LIB_NAME" "$LIB_VERSION")
+}
+
+# Extract lib name from lib infos
+# NOTE: requires a call to init_lib_infos first
+get_lib_name() {
+    echo "${LIB_INFOS[0]}"
+}
+
+# Extract lib version from lib infos
+# NOTE: requires a call to init_lib_infos first
+get_lib_version() {
+    echo "${LIB_INFOS[1]}"
+}
