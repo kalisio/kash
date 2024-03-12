@@ -160,7 +160,7 @@ install_cc_test_reporter() {
 send_coverage_to_cc() {
     local CC_TEST_REPORTER_ID=$1
     local NODE_VERSION="$2"
-    if [ "$NODE_VERSION" -eq 16 ]; then
+    if [ "$NODE_VERSION" -eq 16 ] && [ "$CI" = true ]; then
         ~/.local/bin/cc-test-reporter format-coverage -t lcov coverage/lcov.info
         ~/.local/bin/cc-test-reporter upload-coverage -r $CC_TEST_REPORTER_ID
     fi
@@ -628,7 +628,7 @@ send_slack_message() {
     else
         COLOR="#2eb886"
     fi
-    if [ "$NODE_VERSION" -eq 16 ]; then
+    if [ "$NODE_VERSION" -eq 16 ] && [ "$CI" = true ]; then
         slack_color_log "$SLACK_WEBHOOK_LIBS" "$MESSAGE" "$COLOR"
     fi
 }
