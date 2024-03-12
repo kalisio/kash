@@ -159,8 +159,11 @@ install_cc_test_reporter() {
 # Arg1: code climate identifier for authentication
 send_coverage_to_cc() {
     local CC_TEST_REPORTER_ID=$1
-    ~/.local/bin/cc-test-reporter format-coverage -t lcov coverage/lcov.info
-    ~/.local/bin/cc-test-reporter upload-coverage -r $CC_TEST_REPORTER_ID
+    local NODE_VERSION="$2"
+    if [ "$NODE_VERSION" -eq 16 ]; then
+        ~/.local/bin/cc-test-reporter format-coverage -t lcov coverage/lcov.info
+        ~/.local/bin/cc-test-reporter upload-coverage -r $CC_TEST_REPORTER_ID
+    fi
 }
 
 # Make sure nvm is installed
