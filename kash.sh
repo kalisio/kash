@@ -159,8 +159,8 @@ install_cc_test_reporter() {
 # Arg1: code climate identifier for authentication
 send_coverage_to_cc() {
     local CC_TEST_REPORTER_ID=$1
-    local NODE_VERSION="$2"
-    if [ "$NODE_VERSION" -eq 16 ] && [ "$CI" = true ]; then
+    local RET_CODE="$2"
+    if [ "$RET_CODE" -eq "0" ]; then
         ~/.local/bin/cc-test-reporter format-coverage -t lcov coverage/lcov.info
         ~/.local/bin/cc-test-reporter upload-coverage -r $CC_TEST_REPORTER_ID
     fi
@@ -627,54 +627,6 @@ slack_ci_report() {
     esac
 
     slack_color_log "$SLACK_WEBHOOK" "$MESSAGE" "$COLOR"
-}
-
-# Generate a Slack message
-# Arg1: the repository root
-# Arg2: the repository name (in the format owner/repo)
-# Arg3: the build status ("failed" or "passed")
-generate_slack_message() {
-    local ROOT_DIR="$1"
-    local APP="$2"
-    local BUILD_STATUS="$3"
-    local REPO_NAME="${APP##*/}"
-    local COMMIT_SHA
-    COMMIT_SHA=$(get_git_commit_sha "$ROOT_DIR")
-    local COMMIT_URL
-    COMMIT_URL="https://github.com/kalisio/$REPO_NAME/commit/$COMMIT_SHA"
-    local COMMIT_CHECKS_URL
-    COMMIT_CHECKS_URL="https://github.com/kalisio/$REPO_NAME/commit/$COMMIT_SHA/checks"
-    local AUTHOR
-    AUTHOR=$(get_git_commit_author_name "$THIS_DIR")
-
-    if [ "$CI_ID" = "github" ]; then
-        echo "<${COMMIT_CHECKS_URL}|Build> <${COMMIT_URL}|${COMMIT_SHA}> of $APP by $AUTHOR $BUILD_STATUS"
-    else
-        echo "Build <${COMMIT_URL}|${COMMIT_SHA}> of $APP by $AUTHOR $BUILD_STATUS"
-    fi
-}
-
-# Send a Slack message based on node version
-# Arg1: the repository root
-# Arg2: the node version to use (16, 18 ...)
-# Arg3: the repository name (in the format owner/repo)
-# Arg4: the build status ("failed" or "passed")
-send_slack_message() {
-    local ROOT_DIR="$1"
-    local NODE_VERSION="$2"
-    local APP="$3"
-    local BUILD_STATUS="$4"
-    local MESSAGE
-    MESSAGE=$(generate_slack_message "$ROOT_DIR" "$APP" "$BUILD_STATUS")
-    local COLOR
-    if [ "$BUILD_STATUS" = "failed" ]; then
-        COLOR="#a30200"
-    else
-        COLOR="#2eb886"
-    fi
-    if [ "$NODE_VERSION" -eq 16 ] && [ "$CI" = true ]; then
-        slack_color_log "$SLACK_WEBHOOK_LIBS" "$MESSAGE" "$COLOR"
-    fi
 }
 
 ### SOPS
