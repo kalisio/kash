@@ -561,6 +561,13 @@ end_group() {
 ### Slack
 ###
 
+slack_send() {
+    local PAYLOAD="$1"
+    local URL="$2"
+
+    curl -X POST -H "Content-type: application/json" --data "$PAYLOAD" "$URL"
+}
+
 # Push a simple message to a slack channel
 # Arg1: the Slack webhook where to push the message
 # Arg2: the message (can be markdown formatted)
@@ -569,7 +576,7 @@ slack_log() {
     local MSG="$2"
 
     PAYLOAD="{ blocks: [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \"$MSG\" } } ] }"
-    curl -X POST -H "Content-type: application/json" --data "$PAYLOAD" "$URL"
+    slack_send "$PAYLOAD" "$URL"
 }
 
 # Push a colored message to a slack channel
@@ -582,7 +589,7 @@ slack_color_log() {
     local COLOR="$3"
 
     PAYLOAD="{ attachments: [ { \"color\": \"$COLOR\", blocks: [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \"$MSG\" } } ] } ] }"
-    curl -X POST -H "Content-type: application/json" --data "$PAYLOAD" "$URL"
+    slack_send "$PAYLOAD" "$URL"
 }
 
 # Report ci job result to slack channel
@@ -604,15 +611,15 @@ slack_ci_report() {
     local MESSAGE
     case "$CI_ID" in
         github)
-            MESSAGE=$(printf "[%s@%s] <%s|%s> %s (%s, <%s|%s>)" \
+            MESSAGE=$(printf "*%s*: %s %s @*%s* (%s, <%s|repo>, <%s|commit>, <%s|run)" \
                 "$GITHUB_REPOSITORY" \
-                "$GITHUB_REF_NAME" \
-                "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
                 "$GITHUB_WORKFLOW" \
                 "$STATUS" \
+                "$GITHUB_REF_NAME" \
                 "$GITHUB_ACTOR" \
+                "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
                 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$GITHUB_SHA" \
-                "$GITHUB_SHA")
+                "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID")
             ;;
         *)
             ;;
