@@ -585,6 +585,42 @@ slack_color_log() {
     curl -X POST -H "Content-type: application/json" --data "$PAYLOAD" "$URL"
 }
 
+# Report ci job result to slack channel
+# Expected usage is to do the following:
+# trap 'slack_ci_report "$ROOT_DIR" "$?" "$SLACK_WEBHOOK_APPS"' EXIT
+# Exit code 0 = success, anything else is failure
+# Arg1: the repository root
+# Arg2: the exit code of the ci job
+# Arg3: the slack webhook where to push report
+slack_ci_report() {
+    local REPO_DIR="$1"
+    local RET_CODE="$2"
+    local SLACK_WEBHOOK="$3"
+
+    local STATUS="success"
+    local COLOR="#2eb886"
+    if [ "$RET_CODE" != "0" ]; then STATUS="failed"; COLOR="#a30200"; fi
+
+    local MESSAGE
+    case "$CI_ID" in
+        github)
+            MESSAGE=$(printf "[%s@%s] <%s|%s> %s (%s, <%s|%s>)" \
+                "$GITHUB_REPOSITORY" \
+                "$GITHUB_REF_NAME" \
+                "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+                "$GITHUB_WORKFLOW" \
+                "$STATUS" \
+                "$GITHUB_ACTOR" \
+                "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$GITHUB_SHA" \
+                "$GITHUB_SHA")
+            ;;
+        *)
+            ;;
+    esac
+
+    slack_color_log "$SLACK_WEBHOOK" "$MESSAGE" "$COLOR"
+}
+
 # Generate a Slack message
 # Arg1: the repository root
 # Arg2: the repository name (in the format owner/repo)
