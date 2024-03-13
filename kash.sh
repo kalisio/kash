@@ -611,7 +611,7 @@ slack_ci_report() {
     local MESSAGE
     case "$CI_ID" in
         github)
-            MESSAGE=$(printf "*%s*: %s %s @*%s* (%s, <%s|repo>, <%s|commit>, <%s|run)" \
+            MESSAGE=$(printf "*%s*: %s %s *@%s* (%s, <%s|repo>, <%s|commit>, <%s|run>)" \
                 "$GITHUB_REPOSITORY" \
                 "$GITHUB_WORKFLOW" \
                 "$STATUS" \
