@@ -594,15 +594,16 @@ slack_color_log() {
 
 # Report ci job result to slack channel
 # Expected usage is to do the following:
-# trap 'slack_ci_report "$ROOT_DIR" "$?" "$SLACK_WEBHOOK_APPS"' EXIT
+# trap 'slack_ci_report "$ROOT_DIR" "CI step name" "$?" "$SLACK_WEBHOOK_APPS"' EXIT
 # Exit code 0 = success, anything else is failure
 # Arg1: the repository root
 # Arg2: the exit code of the ci job
 # Arg3: the slack webhook where to push report
 slack_ci_report() {
     local REPO_DIR="$1"
-    local RET_CODE="$2"
-    local SLACK_WEBHOOK="$3"
+    local CI_STEP_NAME="$2"
+    local RET_CODE="$3"
+    local SLACK_WEBHOOK="$4"
 
     local STATUS="success"
     local COLOR="#2eb886"
@@ -613,7 +614,7 @@ slack_ci_report() {
         github)
             MESSAGE=$(printf "*%s*: %s %s *@%s* (%s, <%s|repo>, <%s|commit>, <%s|run>)" \
                 "$GITHUB_REPOSITORY" \
-                "$GITHUB_WORKFLOW" \
+                "$CI_STEP_NAME" \
                 "$STATUS" \
                 "$GITHUB_REF_NAME" \
                 "$GITHUB_ACTOR" \
