@@ -441,6 +441,15 @@ get_git_commit_sha() {
     cd ~-
 }
 
+# Returns the current git commit _short_ sha, always defined
+# Arg1: the repository root
+get_git_commit_short_sha() {
+    local REPO_ROOT="$1"
+    cd "$REPO_ROOT"
+    git rev-parse --short HEAD
+    cd ~-
+}
+
 # Returns the list of changed files between two commits
 # Arg1: commit to (default to latest known)
 # Arg2: commit from (defaults to the one before arg1)
