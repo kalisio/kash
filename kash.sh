@@ -755,7 +755,7 @@ init_app_infos() {
 
     APP_KLI="$KLI_BASE/$APP_NAME/$APP_FLAVOR/$APP_KLI.js"
 
-    APP_INFOS=("$APP_NAME" "$APP_VERSION" "$APP_FLAVOR" "GIT_TAG" "GIT_BRANCH" "$APP_KLI")
+    APP_INFOS=("$APP_NAME" "$APP_VERSION" "$APP_FLAVOR" "$GIT_TAG" "$GIT_BRANCH" "$APP_KLI")
 }
 
 # Extract app name from app infos
@@ -831,7 +831,12 @@ init_lib_infos() {
     local LIB_VERSION
     LIB_VERSION=$(node -p -e "require(\"$REPO_ROOT/package.json\").version")
 
-    LIB_INFOS=("$LIB_NAME" "$LIB_VERSION")
+    local GIT_TAG
+    GIT_TAG=$(get_git_tag "$REPO_ROOT")
+    local GIT_BRANCH
+    GIT_BRANCH=$(get_git_branch "$REPO_ROOT")
+
+    LIB_INFOS=("$LIB_NAME" "$LIB_VERSION" "$GIT_TAG" "$GIT_BRANCH")
 }
 
 # Extract lib name from lib infos
@@ -844,4 +849,16 @@ get_lib_name() {
 # NOTE: requires a call to init_lib_infos first
 get_lib_version() {
     echo "${LIB_INFOS[1]}"
+}
+
+# Extract lib tag from app infos
+# NOTE: requires a call to init_lib_infos first
+get_lib_tag() {
+    echo "${LIB_INFOS[2]}"
+}
+
+# Extract app branch from app infos
+# NOTE: requires a call to init_lib_infos first
+get_lib_branch() {
+    echo "${LIB_INFOS[3]}"
 }
