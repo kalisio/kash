@@ -560,7 +560,9 @@ begin_group() {
         echo "::group::$TITLE"
     elif [ "$CI_ID" = "gitlab" ]; then
         # see https://docs.gitlab.com/ee/ci/jobs/#custom-collapsible-sections
-        echo -e "\e[0Ksection_start:$(date +%s):$TITLE\r\e[0KHeader of the 1st collapsible section"
+        local SECTION
+        SECTION=$(echo "$TITLE" | tr ' .' '_')
+        echo -e "\e[0Ksection_start:$(date +%s):$SECTION\r\e[0$TITLE"
     elif [ "$CI_ID" = "travis" ]; then
         # see
         echo "travis_fold:start:$TITLE"
@@ -575,7 +577,9 @@ end_group() {
     if [ "$CI_ID" = "github" ]; then
         echo "::endgroup::"
     elif [ "$CI_ID" = "gitlab" ]; then
-        echo -e "\e[0Ksection_end:$(date +%s):$TITLE\r\e[0K"
+        local SECTION
+        SECTION=$(echo "$TITLE" | tr ' .' '_')
+        echo -e "\e[0Ksection_end:$(date +%s):$SECTION\r\e[0K"
     elif [ "$CI_ID" = "travis" ]; then
         echo "travis_fold:end:$TITLE"
     fi
