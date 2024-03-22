@@ -53,9 +53,9 @@ if [ -n "$CI_ID" ]; then
     case "$OS_ID" in
         debian | ubuntu)
             if [ "$(id -u)" -eq 0 ]; then
-                apt update && apt --no-install-recommends --yes install sudo curl coreutils git
+                apt-get update && apt-get --no-install-recommends --yes install sudo curl ca-certificates coreutils git
             else
-                sudo apt --no-install-recommends --yes install curl coreutils git
+                sudo apt-get update && sudo apt-get --no-install-recommends --yes install curl ca-certificates coreutils git
             fi
             ;;
         *)
