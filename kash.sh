@@ -841,7 +841,7 @@ run_kli() {
     cd ~-
 }
 
-# Gather information about an librarie
+# Gather information about a library
 # Defines LIB_INFOS variable as an array. This array contains the lib name & the lib version
 # Arg1: the repository root
 # NOTE: the results should be extracted using get_lib_xxx functions below.
@@ -872,14 +872,65 @@ get_lib_version() {
     echo "${LIB_INFOS[1]}"
 }
 
-# Extract lib tag from app infos
+# Extract lib tag from lib infos
 # NOTE: requires a call to init_lib_infos first
 get_lib_tag() {
     echo "${LIB_INFOS[2]}"
 }
 
-# Extract app branch from app infos
+# Extract lib branch from lib infos
 # NOTE: requires a call to init_lib_infos first
 get_lib_branch() {
     echo "${LIB_INFOS[3]}"
+}
+
+# Gather information about a job
+# Defines JOB_INFOS variable as an array. This array contains the job name & the job version along with the krawler version
+# Arg1: the repository root
+# NOTE: the results should be extracted using get_job_xxx functions below.
+init_job_infos() {
+    local REPO_ROOT="$1"
+    local JOB_NAME
+    JOB_NAME=$(node -p -e "require(\"$REPO_ROOT/package.json\").name")
+    local JOB_VERSION
+    JOB_VERSION=$(node -p -e "require(\"$REPO_ROOT/package.json\").version")
+    local KRAWLER_VERSION
+    KRAWLER_VERSION=$(node -p -e "require(\"$REPO_ROOT/package.json\").peerDependencies['@kalisio/krawler']")
+
+    local GIT_TAG
+    GIT_TAG=$(get_git_tag "$REPO_ROOT")
+    local GIT_BRANCH
+    GIT_BRANCH=$(get_git_branch "$REPO_ROOT")
+
+    JOB_INFOS=("$JOB_NAME" "$JOB_VERSION" "$GIT_TAG" "$GIT_BRANCH" "$KRAWLER_VERSION")
+}
+
+# Extract job name from job infos
+# NOTE: requires a call to init_job_infos first
+get_job_name() {
+    echo "${JOB_INFOS[0]}"
+}
+
+# Extract job version from job infos
+# NOTE: requires a call to init_job_infos first
+get_job_version() {
+    echo "${JOB_INFOS[1]}"
+}
+
+# Extract job tag from job infos
+# NOTE: requires a call to init_job_infos first
+get_job_tag() {
+    echo "${JOB_INFOS[2]}"
+}
+
+# Extract job branch from job infos
+# NOTE: requires a call to init_job_infos first
+get_job_branch() {
+    echo "${JOB_INFOS[3]}"
+}
+
+# Extract krawler version from job infos
+# NOTE: requires a call to init_job_infos first
+get_job_krawler_version() {
+    echo "${JOB_INFOS[4]}"
 }
