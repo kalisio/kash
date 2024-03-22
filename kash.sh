@@ -37,6 +37,10 @@ if [ "${GITHUB_ACTIONS:-}" = true ]; then
 
 elif [ "${GITLAB_CI:-}" = true ]; then
     CI_ID="gitlab"
+
+    # Add ~/.local/bin to PATH
+    mkdir -p "$HOME/.local/bin"
+    export PATH=$PATH:$HOME/.local/bin
 elif [  "${TRAVIS:-}" = true ]; then
     CI_ID="travis"
 fi
