@@ -562,7 +562,7 @@ begin_group() {
         # see https://docs.gitlab.com/ee/ci/jobs/#custom-collapsible-sections
         local SECTION
         SECTION=$(echo "$TITLE" | tr ' .' '_')
-        echo -e "\e[0Ksection_start:$(date +%s):$SECTION\r\e[0$TITLE"
+        echo -e "section_start:$(date +%s):$SECTION\r\e[0K$TITLE"
     elif [ "$CI_ID" = "travis" ]; then
         # see
         echo "travis_fold:start:$TITLE"
@@ -579,7 +579,7 @@ end_group() {
     elif [ "$CI_ID" = "gitlab" ]; then
         local SECTION
         SECTION=$(echo "$TITLE" | tr ' .' '_')
-        echo -e "\e[0Ksection_end:$(date +%s):$SECTION\r\e[0K"
+        echo -e "section_end:$(date +%s):$SECTION\r\e[0K"
     elif [ "$CI_ID" = "travis" ]; then
         echo "travis_fold:end:$TITLE"
     fi
