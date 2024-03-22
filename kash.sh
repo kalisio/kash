@@ -52,7 +52,7 @@ if [ -n "$CI_ID" ]; then
     # Make sure we have the requirements to run kash functions
     case "$OS_ID" in
         debian | ubuntu)
-            sudo apt --no-install-recommends --yes install curl coreutils git
+            sudo apt --no-install-recommends --yes install sudo curl coreutils git
             ;;
         *)
             ;;
