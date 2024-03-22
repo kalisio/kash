@@ -49,6 +49,15 @@ if [ -n "$CI_ID" ]; then
     CI=true
     echo "Running in CI mode ($CI_ID)..."
 
+    # Make sure we have the requirements to run kash functions
+    case "$OS_ID" in
+        debian | ubuntu)
+            sudo apt --no-install-recommends --yes install curl coreutils git
+            ;;
+        *)
+            ;;
+    esac
+
     # Emulate development k-mongo when running on CI
     cat <<EOF > ~/.local/bin/k-mongo
 #!/usr/bin/env bash
