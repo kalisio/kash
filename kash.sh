@@ -656,6 +656,13 @@ slack_ci_report() {
     slack_color_log "$SLACK_WEBHOOK" "$MESSAGE" "$COLOR"
 }
 
+# Report e2e test result to slack channel
+# Expected usage is to do the following:
+# trap 'slack_e2e_report "$APP" "$?" "$SLACK_WEBHOOK_APPS"' EXIT
+# Exit code 0 = success, anything else is failure
+# Arg1: the app name
+# Arg2: the exit code of the ci job
+# Arg3: the slack webhook where to push report
 slack_e2e_report() {
     local APP="$1"
     local RET_CODE="$2"
