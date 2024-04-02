@@ -667,15 +667,17 @@ slack_e2e_report() {
     local APP="$1"
     local RET_CODE="$2"
     local SLACK_WEBHOOK="$3"
+    local LINK="$4"
 
     local STATUS="success"
     local COLOR="#2eb886"
     if [ "$RET_CODE" != "0" ]; then STATUS="failed"; COLOR="#a30200"; fi
 
     local MESSAGE
-    MESSAGE=$(printf "*%s*: run_e2e_tests %s" \
+    MESSAGE=$(printf "*%s*: run_e2e_tests %s (%s)" \
         "$APP" \
-        "$STATUS")       
+        "$STATUS"\
+        "$LINK")       
 
     slack_color_log "$SLACK_WEBHOOK" "$MESSAGE" "$COLOR"
 }
