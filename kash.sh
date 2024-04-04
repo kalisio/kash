@@ -674,10 +674,10 @@ slack_e2e_report() {
     if [ "$RET_CODE" != "0" ]; then STATUS="failed"; COLOR="#a30200"; fi
 
     local MESSAGE
-    MESSAGE=$(printf "*%s*: run_e2e_tests %s (%s)" \
+    MESSAGE=$(printf "*%s*: run_e2e_tests %s (<%s|logs & screenshots>)" \
         "$APP" \
         "$STATUS"\
-        "$LINK")       
+        "$LINK")
 
     slack_color_log "$SLACK_WEBHOOK" "$MESSAGE" "$COLOR"
 }
