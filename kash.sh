@@ -962,3 +962,80 @@ get_job_branch() {
 get_job_krawler_version() {
     echo "${JOB_INFOS[4]}"
 }
+
+# Run tests for a library module
+# Expected arguments
+# 1. Root directory
+# 2. true to publish code coverage to code climate
+# NODE_VER env var should be defined with node version to be used
+# MONGO_VER env var should be defined with mongo version to be used if required by tests
+# CC_TEST_REPORTER_ID env var should be defined with Code Climate ID if required
+run_lib_tests () {
+    local ROOT_DIR="$1"
+    local CODE_COVERAGE="$2"
+    local WORKSPACE_DIR="$(dirname "$ROOT_DIR")"
+
+    init_lib_infos "$ROOT_DIR"
+
+    LIB=$(get_lib_name)
+    VERSION=$(get_lib_version)
+    GIT_TAG=$(get_lib_tag)
+
+    echo "About to run tests for ${LIB} v${VERSION}..."
+
+    ## Start mongo
+    ##
+    
+    if [ -n "$MONGO_VER" ]; then
+        begin_group "Starting mongo $MONGO_VER ..."
+
+        use_mongo "$MONGO_VER"
+        k-mongo
+
+        end_group "Starting mongo $MONGO_VER ..."
+    fi
+
+    ## Run tests
+    ##
+
+    use_node "$NODE_VER"
+    yarn && yarn test
+
+    ## Publish code coverage
+    ##
+
+    if [ "$CODE_COVERAGE" = true ]; then
+        send_coverage_to_cc "$CC_TEST_REPORTER_ID"
+    fi
+}
+
+# Build vitepress docs and possibly publish it on github pages
+# Expected arguments
+# 1. Root directory
+# 2. Repository name like kalisio/krawler
+# 3. true to publish result on github pages
+build_docs () {
+    local ROOT_DIR="$1"
+    local REPOSITORY="$2"
+    local PUBLISH="$3"
+    local WORKSPACE_DIR="$(dirname "$ROOT_DIR")"
+
+    # Build process requires node 18
+    use_node 18
+
+    rm -f .postcssrc.js && cd docs && yarn install && yarn build
+
+    if [ "$PUBLISH" = true ]; then
+        load_env_files "$WORKSPACE_DIR/development/common/GH_PAGES_PUSH_TOKEN.enc.env"
+
+        COMMIT_SHA=$(get_git_commit_sha "$ROOT_DIR")
+        COMMIT_AUTHOR_NAME=$(get_git_commit_author_name "$ROOT_DIR")
+        COMMIT_AUTHOR_EMAIL=$(get_git_commit_author_email "$ROOT_DIR")
+        deploy_gh_pages \
+            "https://oauth2:$GH_PAGES_PUSH_TOKEN@github.com/$REPOSITORY.git" \
+            "$ROOT_DIR/docs/.vitepress/dist" \
+            "$COMMIT_AUTHOR_NAME" \
+            "$COMMIT_AUTHOR_EMAIL" \
+            "Docs built from $COMMIT_SHA"
+    fi
+}
