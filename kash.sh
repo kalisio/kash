@@ -966,13 +966,14 @@ get_job_krawler_version() {
 # Run tests for a library module
 # Expected arguments
 # 1. Root directory
-# 2. true to publish code coverage to code climate
-# NODE_VER env var should be defined with node version to be used
-# MONGO_VER env var should be defined with mongo version to be used if required by tests
-# CC_TEST_REPORTER_ID env var should be defined with Code Climate ID if required
+# 2. true to publish code coverage to code climate (CC_TEST_REPORTER_ID env var should be defined in this case)
+# 3. node version to be used
+# 4. mongo version to be used if required by tests
 run_lib_tests () {
     local ROOT_DIR="$1"
     local CODE_COVERAGE="$2"
+    local NODE_VER="$3"
+    local MONGO_VER="$4"
     local WORKSPACE_DIR="$(dirname "$ROOT_DIR")"
 
     init_lib_infos "$ROOT_DIR"
@@ -985,7 +986,7 @@ run_lib_tests () {
 
     ## Start mongo
     ##
-    
+
     if [ -n "$MONGO_VER" ]; then
         begin_group "Starting mongo $MONGO_VER ..."
 
