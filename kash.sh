@@ -667,7 +667,7 @@ slack_e2e_report() {
     local APP="$1"
     local RET_CODE="$2"
     local SLACK_WEBHOOK="$3"
-    local GOOGLE_LOGS_LINK="$4"
+    local CHROME_LOGS_LINK="$4"
     local SCREEN_LINK="$5"
 
     local STATUS="success"
@@ -675,11 +675,11 @@ slack_e2e_report() {
     if [ "$RET_CODE" != "0" ]; then STATUS="failed"; COLOR="#a30200"; fi
 
     local MESSAGE
-    MESSAGE=$(printf "*%s*: run_e2e_tests %s (<%s|google logs> | <%s|screenshots>)" \
+    MESSAGE=$(printf "*%s*: run_e2e_tests %s" \
         "$APP" \
-        "$STATUS"\
-        "$GOOGLE_LOGS_LINK"\
-        "$SCREEN_LINK")
+        "$STATUS")
+    [ -n "$CHROME_LOGS_LINK" ] && MESSAGE+=" (<${CHROME_LOGS_LINK}|chrome logs>)"
+    [ -n "$SCREEN_LINK" ] && MESSAGE+="${CHROME_LOGS_LINK:+ |} (<${SCREEN_LINK}|screenshots>)"
 
     slack_color_log "$SLACK_WEBHOOK" "$MESSAGE" "$COLOR"
 }
