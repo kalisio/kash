@@ -657,12 +657,11 @@ slack_ci_report() {
 }
 
 # Report e2e test result to slack channel
-# Expected usage is to do the following:
-# trap 'slack_e2e_report "$APP" "$?" "$SLACK_WEBHOOK_APPS"' EXIT
-# Exit code 0 = success, anything else is failure
 # Arg1: the app name
-# Arg2: the exit code of the ci job
+# Arg2: the exit code of the tests
 # Arg3: the slack webhook where to push report
+# Arg4: link to chrome logs
+# Arg5: link to screenshots
 slack_e2e_report() {
     local APP="$1"
     local RET_CODE="$2"
@@ -678,8 +677,13 @@ slack_e2e_report() {
     MESSAGE=$(printf "*%s*: run_e2e_tests %s" \
         "$APP" \
         "$STATUS")
-    [ -n "$CHROME_LOGS_LINK" ] && MESSAGE+=" (<${CHROME_LOGS_LINK}|chrome logs>)"
-    [ -n "$SCREEN_LINK" ] && MESSAGE+="${CHROME_LOGS_LINK:+ |} (<${SCREEN_LINK}|screenshots>)"
+    if [ -n "$CHROME_LOGS_LINK" ] && [ -n "$SCREEN_LINK" ]; then
+        MESSAGE+=" (<${CHROME_LOGS_LINK}|chrome logs> | <${SCREEN_LINK}|screenshots>)"
+    elif [ -n "$CHROME_LOGS_LINK" ]; then
+        MESSAGE+=" (<${CHROME_LOGS_LINK}|chrome logs>"
+    elif [ -n "$SCREEN_LINK" ]; then
+        MESSAGE+=" (<${SCREEN_LINK}|screenshots>)"
+    fi
 
     slack_color_log "$SLACK_WEBHOOK" "$MESSAGE" "$COLOR"
 }
