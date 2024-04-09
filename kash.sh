@@ -1149,5 +1149,5 @@ run_e2e_tests () {
     ## Publish code coverage
     ##
 
-    send_coverage_to_cc "$CC_TEST_REPORTER_ID"
+    #send_coverage_to_cc "$CC_TEST_REPORTER_ID"
 }
