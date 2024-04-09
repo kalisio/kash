@@ -1083,7 +1083,7 @@ build_e2e_tests () {
         --build-arg NODE_APP_INSTANCE="$FLAVOR" \
         --build-arg SUBDOMAIN="$FLAVOR.kalisio.xyz" \
         --build-arg HEADLESS=true \
-        -f e2e-tests.Dockerfile \
+        -f "$ROOT_DIR/e2e-tests.Dockerfile" \
         -t "$IMAGE_NAME:$IMAGE_TAG" \
         "$WORKSPACE_DIR"
     docker tag "$IMAGE_NAME:$IMAGE_TAG" "$IMAGE_NAME:$FLAVOR"
