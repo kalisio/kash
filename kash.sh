@@ -674,7 +674,7 @@ slack_e2e_report() {
     if [ "$RET_CODE" != "0" ]; then STATUS="failed"; COLOR="#a30200"; fi
 
     local MESSAGE
-    MESSAGE=$(printf "*%s*: run_e2e_tests %s" \
+    MESSAGE=$(printf "*%s*: Run e2e tests %s" \
         "$APP" \
         "$STATUS")
     if [ -n "$CHROME_LOGS_LINK" ] && [ -n "$SCREEN_LINK" ]; then
@@ -1045,21 +1045,79 @@ build_docs () {
     fi
 }
 
+# Build e2e tests
+# Expected arguments
+# 1. Root directory
+# 2: true to publish result on harbor
+build_e2e_tests () {
+    local ROOT_DIR="$1"
+    local PUBLISH="$2"
+
+    ## Init workspace
+    ##
+
+    local WORKSPACE_DIR="$(dirname "$ROOT_DIR")"
+    init_app_infos "$ROOT_DIR" "$WORKSPACE_DIR/development/workspaces/apps"
+
+    local APP=$(get_app_name)
+    local VERSION=$(get_app_version)
+    local FLAVOR=$(get_app_flavor)
+
+    echo "About to build ${APP} v${VERSION}-$FLAVOR ..."
+
+    load_env_files "$WORKSPACE_DIR/development/common/kalisio_harbor.enc.env"
+    load_value_files "$WORKSPACE_DIR/development/common/KALISIO_HARBOR_PASSWORD.enc.value"
+
+    ## Build container
+    ##
+
+    local IMAGE_NAME="$KALISIO_HARBOR_URL/kalisio/$APP-e2e-tests"
+    local IMAGE_TAG="$VERSION-$FLAVOR"
+
+    begin_group "Building container ..."
+
+    docker login --username "$KALISIO_HARBOR_USERNAME" --password-stdin "$KALISIO_HARBOR_URL" < "$KALISIO_HARBOR_PASSWORD"
+    # DOCKER_BUILDKIT is here to be able to use Dockerfile specific dockerginore (e2e-tests.Dockerfile.dockerignore)
+    DOCKER_BUILDKIT=1 docker build \
+        --build-arg APP="$APP" \
+        --build-arg NODE_APP_INSTANCE="$FLAVOR" \
+        --build-arg SUBDOMAIN="$FLAVOR.kalisio.xyz" \
+        --build-arg HEADLESS=true \
+        -f e2e-tests.Dockerfile \
+        -t "$IMAGE_NAME:$IMAGE_TAG" \
+        "$WORKSPACE_DIR"
+    docker tag "$IMAGE_NAME:$IMAGE_TAG" "$IMAGE_NAME:$FLAVOR"
+
+    if [ "$PUBLISH" = true ]; then
+        docker push "$IMAGE_NAME:$IMAGE_TAG"
+        docker push "$IMAGE_NAME:$FLAVOR"
+    fi
+
+    docker logout "$KALISIO_HARBOR_URL"
+
+    end_group "Building container ..."
+}
+
 # Run e2e tests
+# Specific error handling: set -uo pipefail to bypass errors
 # Expected arguments
 # 1. Root directory
 # 2: the app name
 run_e2e_tests () {
     local ROOT_DIR="$1"
     local APP="$2"
+    local SLACK_WEBHOOK_APPS="$3"
+    local CC_TEST_REPORTER_ID="$4"
 
+    install_reqs cc_test_reporter
+    
     ## Run tests & redirect output to a log file
     ##
 
     # Chrome
     mkdir -p "$ROOT_DIR/test/run/chrome"
     yarn test:client > "$ROOT_DIR/test/run/chrome/chrome_logs.txt" 2>&1
-    RET_CODE=$?
+    local RET_CODE=$?
 
     # Firefox
     # PUPPETEER_PRODUCT=firefox yarn add puppeteer
@@ -1071,20 +1129,25 @@ run_e2e_tests () {
     ## Upload logs & screenshots to S3
     ##
 
-    CURRENT_DATE=$(date +"%d-%m-%Y")
-    CHROME_LOGS_LINK=""
-    SCREEN_LINK=""
+    local CURRENT_DATE=$(date +"%d-%m-%Y")
+    local CHROME_LOGS_LINK=""
+    local SCREEN_LINK=""
 
-    zip -r "$ROOT_DIR/test/screenshots.zip" "$ROOT_DIR/test/run"
+    zip -r "$TMP_DIR/screenshots.zip" "$ROOT_DIR/test/run"
 
     rclone copy "$ROOT_DIR/test/run/chrome/chrome_logs.txt" "ovh-s3:/dev/e2e-tests/$APP/$CURRENT_DATE"
     CHROME_LOGS_LINK=$(rclone link "ovh-s3:/dev/e2e-tests/$APP/$CURRENT_DATE/chrome_logs.txt")
 
-    rclone copy "$ROOT_DIR/test/screenshots.zip" "ovh-s3:/dev/e2e-tests/$APP/$CURRENT_DATE"
+    rclone copy "$TMP_DIR/screenshots.zip" "ovh-s3:/dev/e2e-tests/$APP/$CURRENT_DATE"
     SCREEN_LINK=$(rclone link "ovh-s3:/dev/e2e-tests/$APP/$CURRENT_DATE/screenshots.zip")
 
     ## Report outcome to slack
     ##
 
-    slack_e2e_report "$APP" "$RET_CODE" "$SLACK_WEBHOOK" "$CHROME_LOGS_LINK" "$SCREEN_LINK"
+    slack_e2e_report "$APP" "$RET_CODE" "$SLACK_WEBHOOK_APPS" "$CHROME_LOGS_LINK" "$SCREEN_LINK"
+
+    ## Publish code coverage
+    ##
+
+    send_coverage_to_cc "$CC_TEST_REPORTER_ID"
 }
