@@ -674,7 +674,7 @@ slack_e2e_report() {
     if [ "$RET_CODE" != "0" ]; then STATUS="failed"; COLOR="#a30200"; fi
 
     local MESSAGE
-    MESSAGE=$(printf "*%s*: Run e2e tests %s" \
+    MESSAGE=$(printf "*%s*: run_e2e_tests %s" \
         "$APP" \
         "$STATUS")
     if [ -n "$CHROME_LOGS_LINK" ] && [ -n "$SCREEN_LINK" ]; then
@@ -1109,7 +1109,7 @@ run_e2e_tests () {
     local SLACK_WEBHOOK_APPS="$3"
     local CC_TEST_REPORTER_ID="$4"
 
-    install_reqs cc_test_reporter
+    install_cc_test_reporter "/opt/kalisio"
     
     ## Run tests & redirect output to a log file
     ##
