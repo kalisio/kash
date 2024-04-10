@@ -852,7 +852,7 @@ init_app_infos() {
     local GIT_TAG
     GIT_TAG=$(get_git_tag "$REPO_ROOT")
     local GIT_BRANCH
-    GIT_BRANCH=$(get_git_branch "$REPO_DIR")
+    GIT_BRANCH=$(get_git_branch "$REPO_ROOT")
 
     local GIT_REF="${GIT_TAG:-$GIT_BRANCH}"
 
