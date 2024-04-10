@@ -765,6 +765,73 @@ load_value_files() {
 ### Kalisio
 ###
 
+# Setup a suitable workspace for the given app.
+# Expected args:
+# 1. the app repository dir
+# 2. the workspace dir
+# 3. the url to use to clone the corresponding 'development' repository
+# 4. the node version to use to setup the workspace (matter because we run kli using this node version)
+# 5. the directory in which we'll find kli files relative to the 'development' repository root directory
+# 6. the kind of kli we want to run (nokli, kli or klifull => cf. run_kli())
+# 7. (only in dev mode) the ref (ie. tag or branch) to checkout in the workspace
+setup_app_workspace() {
+    local REPO_DIR="$1"
+    local WORKSPACE_DIR="$2"
+    local DEVELOPMENT_REPO_URL="$3"
+    local NODE_VER="$4"
+    local KLI_BASE="$5"
+    local KLI_RUN="${6:-klifull}"
+
+    # clone development in $WORKSPACE_DIR
+    local DEVELOPMENT_DIR="$WORKSPACE_DIR/development"
+    git clone --depth 1 "$DEVELOPMENT_REPO_URL" "$DEVELOPMENT_DIR"
+
+    # fetch app name and ref (tag or branch) required
+    local APP_NAME
+    APP_NAME=$(node -p -e "require(\"$REPO_DIR/package.json\").name")
+    local APP_REF=""
+    if [ "$CI" = true ]; then
+        # fetch ref using git on local repo
+        APP_REF=$(get_git_tag "$REPO_DIR")
+        if [ -z "$APP_REF" ]; then
+            APP_REF=$(get_git_branch "$REPO_DIR")
+        fi
+    else
+        # fetch ref from argument
+        APP_REF="$7"
+    fi
+
+    if [ -z "$KLI_BASE" ]; then
+        KLI_BASE="$DEVELOPMENT_DIR/$APP_NAME"
+    else
+        KLI_BASE="$DEVELOPMENT_DIR/$KLI_BASE/$APP_NAME"
+    fi
+
+    # determine associated kli file
+    local KLI_FILE
+    local PROD_REGEX="^prod-v([0-9]+\.[0-9]+\.[0-9]+)$"
+    local TEST_REGEX="^test-v([0-9]+\.[0-9]+)$"
+    if [[ "$APP_REF" =~ $PROD_REGEX ]]; then
+        KLI_FILE="$KLI_BASE/prod/$APP_NAME-${BASH_REMATCH[1]}.js"
+    elif [[ "$APP_REF" =~ $TEST_REGEX ]]; then
+        KLI_FILE="$KLI_BASE/test/$APP_NAME-${BASH_REMATCH[1]}.js"
+    else
+        KLI_FILE="$KLI_BASE/dev/$APP_NAME-$APP_REF.js"
+        if [ ! -f "$KLI_FILE" ]; then
+            KLI_FILE="$KLI_BASE/dev/$APP_NAME.js"
+        fi
+    fi
+
+    # run kli !
+    if [ "$KLI_RUN" = kli ] || [ "$KLI_RUN" = klifull ]; then
+        echo "About to populate workspace using $KLI_FILE ..."
+        # if [ "$CI" != true ]; then
+        #     unset KALISIO_DEVELOPMENT_DIR
+        # fi
+        run_kli "$WORKSPACE_DIR" "$NODE_VER" "$KLI_FILE" "$KLI_RUN"
+    fi
+}
+
 # Gather information about an app
 # Defines APP_INFOS variable as an array. This array contains the app name, the app version,
 # the flavor based on the git tag and branch ...
