@@ -602,7 +602,7 @@ slack_log() {
     local URL="$1"
     local MSG="$2"
 
-    PAYLOAD="{ blocks: [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \"$MSG\" } } ] }"
+    local PAYLOAD="{ blocks: [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \"$MSG\" } } ] }"
     slack_send "$PAYLOAD" "$URL"
 }
 
@@ -615,7 +615,7 @@ slack_color_log() {
     local MSG="$2"
     local COLOR="$3"
 
-    PAYLOAD="{ attachments: [ { \"color\": \"$COLOR\", blocks: [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \"$MSG\" } } ] } ] }"
+    local PAYLOAD="{ attachments: [ { \"color\": \"$COLOR\", blocks: [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \"$MSG\" } } ] } ] }"
     slack_send "$PAYLOAD" "$URL"
 }
 
@@ -978,12 +978,16 @@ run_lib_tests () {
     local CODE_COVERAGE="$2"
     local NODE_VER="$3"
     local MONGO_VER="$4"
-    local WORKSPACE_DIR="$(dirname "$ROOT_DIR")"
+    local WORKSPACE_DIR
+    WORKSPACE_DIR="$(dirname "$ROOT_DIR")"
 
     init_lib_infos "$ROOT_DIR"
 
+    local LIB
     LIB=$(get_lib_name)
+    local VERSION
     VERSION=$(get_lib_version)
+    local GIT_TAG
     GIT_TAG=$(get_lib_tag)
 
     echo "About to run tests for ${LIB} v${VERSION}..."
@@ -1023,7 +1027,8 @@ build_docs () {
     local ROOT_DIR="$1"
     local REPOSITORY="$2"
     local PUBLISH="$3"
-    local WORKSPACE_DIR="$(dirname "$ROOT_DIR")"
+    local WORKSPACE_DIR
+    WORKSPACE_DIR="$(dirname "$ROOT_DIR")"
 
     # Build process requires node 18
     use_node 18
@@ -1033,8 +1038,11 @@ build_docs () {
     if [ "$PUBLISH" = true ]; then
         load_env_files "$WORKSPACE_DIR/development/common/GH_PAGES_PUSH_TOKEN.enc.env"
 
+        local COMMIT_SHA
         COMMIT_SHA=$(get_git_commit_sha "$ROOT_DIR")
+        local COMMIT_AUTHOR_NAME
         COMMIT_AUTHOR_NAME=$(get_git_commit_author_name "$ROOT_DIR")
+        local COMMIT_AUTHOR_EMAIL
         COMMIT_AUTHOR_EMAIL=$(get_git_commit_author_email "$ROOT_DIR")
         deploy_gh_pages \
             "https://oauth2:$GH_PAGES_PUSH_TOKEN@github.com/$REPOSITORY.git" \
@@ -1056,12 +1064,16 @@ build_e2e_tests () {
     ## Init workspace
     ##
 
-    local WORKSPACE_DIR="$(dirname "$ROOT_DIR")"
+    local WORKSPACE_DIR
+    WORKSPACE_DIR="$(dirname "$ROOT_DIR")"
     init_app_infos "$ROOT_DIR" "$WORKSPACE_DIR/development/workspaces/apps"
 
-    local APP=$(get_app_name)
-    local VERSION=$(get_app_version)
-    local FLAVOR=$(get_app_flavor)
+    local APP
+    APP=$(get_app_name)
+    local VERSION
+    VERSION=$(get_app_version)
+    local FLAVOR
+    FLAVOR=$(get_app_flavor)
 
     echo "About to build ${APP} v${VERSION}-$FLAVOR ..."
 
@@ -1127,7 +1139,8 @@ run_e2e_tests () {
     ## Upload logs & screenshots to S3
     ##
 
-    local CURRENT_DATE=$(date +"%d-%m-%Y")
+    local CURRENT_DATE
+    CURRENT_DATE=$(date +"%d-%m-%Y")
     local CHROME_LOGS_LINK=""
     local SCREEN_LINK=""
 
