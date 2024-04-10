@@ -1103,14 +1103,12 @@ build_e2e_tests () {
 # Expected arguments
 # 1. Root directory
 # 2: the app name
+# 3: the slack webhook apps
 run_e2e_tests () {
     local ROOT_DIR="$1"
     local APP="$2"
     local SLACK_WEBHOOK_APPS="$3"
-    local CC_TEST_REPORTER_ID="$4"
 
-    install_cc_test_reporter "/opt/kalisio"
-    
     ## Run tests & redirect output to a log file
     ##
 
@@ -1145,9 +1143,4 @@ run_e2e_tests () {
     ##
 
     slack_e2e_report "$APP" "$RET_CODE" "$SLACK_WEBHOOK_APPS" "$CHROME_LOGS_LINK" "$SCREEN_LINK"
-
-    ## Publish code coverage
-    ##
-
-    #send_coverage_to_cc "$CC_TEST_REPORTER_ID"
 }
