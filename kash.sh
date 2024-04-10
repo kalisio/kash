@@ -789,16 +789,16 @@ setup_app_workspace() {
     # fetch app name and ref (tag or branch) required
     local APP_NAME
     APP_NAME=$(node -p -e "require(\"$REPO_DIR/package.json\").name")
-    local APP_REF=""
+    local GIT_REF=""
     if [ "$CI" = true ]; then
         # fetch ref using git on local repo
-        APP_REF=$(get_git_tag "$REPO_DIR")
-        if [ -z "$APP_REF" ]; then
-            APP_REF=$(get_git_branch "$REPO_DIR")
+        GIT_REF=$(get_git_tag "$REPO_DIR")
+        if [ -z "$GIT_REF" ]; then
+            GIT_REF=$(get_git_branch "$REPO_DIR")
         fi
     else
         # fetch ref from argument
-        APP_REF="$7"
+        GIT_REF="$7"
     fi
 
     if [ -z "$KLI_BASE" ]; then
@@ -811,12 +811,12 @@ setup_app_workspace() {
     local KLI_FILE
     local PROD_REGEX="^prod-v([0-9]+\.[0-9]+\.[0-9]+)$"
     local TEST_REGEX="^test-v([0-9]+\.[0-9]+)$"
-    if [[ "$APP_REF" =~ $PROD_REGEX ]]; then
+    if [[ "$GIT_REF" =~ $PROD_REGEX ]]; then
         KLI_FILE="$KLI_BASE/prod/$APP_NAME-${BASH_REMATCH[1]}.js"
-    elif [[ "$APP_REF" =~ $TEST_REGEX ]]; then
+    elif [[ "$GIT_REF" =~ $TEST_REGEX ]]; then
         KLI_FILE="$KLI_BASE/test/$APP_NAME-${BASH_REMATCH[1]}.js"
     else
-        KLI_FILE="$KLI_BASE/dev/$APP_NAME-$APP_REF.js"
+        KLI_FILE="$KLI_BASE/dev/$APP_NAME-$GIT_REF.js"
         if [ ! -f "$KLI_FILE" ]; then
             KLI_FILE="$KLI_BASE/dev/$APP_NAME.js"
         fi
@@ -841,41 +841,40 @@ setup_app_workspace() {
 init_app_infos() {
     local REPO_ROOT="$1"
     local KLI_BASE="$2"
+
     local APP_NAME
     APP_NAME=$(node -p -e "require(\"$REPO_ROOT/package.json\").name")
     local APP_VERSION
     APP_VERSION=$(node -p -e "require(\"$REPO_ROOT/package.json\").version")
-    local APP_FLAVOR
-    local APP_KLI
+
+    KLI_BASE="$KLI_BASE/$APP_NAME"
 
     local GIT_TAG
     GIT_TAG=$(get_git_tag "$REPO_ROOT")
     local GIT_BRANCH
-    GIT_BRANCH=$(get_git_branch "$REPO_ROOT")
+    GIT_BRANCH=$(get_git_branch "$REPO_DIR")
 
-    local PROD_REGEX="^prod-v"
-    local TEST_REGEX="^test-|-test$"
+    local GIT_REF="${GIT_TAG:-$GIT_BRANCH}"
 
-    if [[ "$GIT_TAG" =~ $PROD_REGEX ]]; then
-        APP_FLAVOR=prod
-        APP_KLI="$APP_NAME-$APP_VERSION"
+    local APP_FLAVOR
+    local KLI_FILE
+    local PROD_REGEX="^prod-v([0-9]+\.[0-9]+\.[0-9]+)$"
+    local TEST_REGEX="^test-v([0-9]+\.[0-9]+)$"
+    if [[ "$GIT_REF" =~ $PROD_REGEX ]]; then
+        APP_FLAVOR="prod"
+        KLI_FILE="$KLI_BASE/$APP_FLAVOR/$APP_NAME-${BASH_REMATCH[1]}.js"
+    elif [[ "$GIT_REF" =~ $TEST_REGEX ]]; then
+        APP_FLAVOR="test"
+        KLI_FILE="$KLI_BASE/$APP_FLAVOR/$APP_NAME-${BASH_REMATCH[1]}.js"
     else
-        if [[ "$GIT_BRANCH" =~ $TEST_REGEX ]]; then
-            APP_FLAVOR="test"
-            parse_semver "$APP_VERSION"
-            APP_KLI="$APP_NAME-${SEMVER[0]}.${SEMVER[1]}"
-        else
-            APP_FLAVOR=dev
-            APP_KLI="$APP_NAME"
-            if [ -f "$KLI_BASE/$APP_NAME/$APP_FLAVOR/$APP_NAME-$GIT_BRANCH.js" ]; then
-                APP_KLI="$APP_NAME-$GIT_BRANCH"
-            fi
+        APP_FLAVOR="dev"
+        KLI_FILE="$KLI_BASE/$APP_FLAVOR/$APP_NAME-$GIT_REF.js"
+        if [ ! -f "$KLI_FILE" ]; then
+            KLI_FILE="$KLI_BASE/$APP_FLAVOR/$APP_NAME.js"
         fi
     fi
 
-    APP_KLI="$KLI_BASE/$APP_NAME/$APP_FLAVOR/$APP_KLI.js"
-
-    APP_INFOS=("$APP_NAME" "$APP_VERSION" "$APP_FLAVOR" "$GIT_TAG" "$GIT_BRANCH" "$APP_KLI")
+    APP_INFOS=("$APP_NAME" "$APP_VERSION" "$APP_FLAVOR" "$GIT_TAG" "$GIT_BRANCH" "$KLI_FILE")
 }
 
 # Extract app name from app infos
