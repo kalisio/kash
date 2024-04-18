@@ -1175,6 +1175,83 @@ get_job_krawler_version() {
     echo "${JOB_INFOS[4]}"
 }
 
+# Build a krawler job container.
+# Expected args
+# 1. the job repository directory
+# 2. the prefix to use before the image name (ie. kalisio, some_other_namespace, ...)
+# 3. the job variant to build (or empty if no variant)
+# 4. the registry url where to push the built container
+# 5. the registry username to use
+# 6. the file containing the registry password
+# 7. true to push the built container on the registry
+build_job() {
+    local REPO_DIR="$1"
+    local IMAGE_PREFIX="$2"
+    local JOB_VARIANT="$3"
+    local REGISTRY_URL="$4"
+    local REGISTRY_USERNAME="$5"
+    local REGISTRY_PASSWORD_FILE="$6"
+    local PUBLISH="$7"
+
+    ## Init workspace
+    ##
+
+    init_job_infos "$REPO_DIR"
+
+    local JOB
+    JOB=$(get_job_name)
+    local VERSION
+    VERSION=$(get_job_version)
+    local KRAWLER_VERSION
+    KRAWLER_VERSION=$(get_job_krawler_version)
+    local GIT_TAG
+    GIT_TAG=$(get_job_tag)
+
+    if [ -z "$GIT_TAG" ]; then
+        echo "About to build $JOB development version based on krawler development version..."
+    else
+        echo "About to build $JOB v$VERSION based on krawler $KRAWLER_VERSION..."
+    fi
+
+    ## Build container
+    ##
+
+    local DOCKERFILE="dockerfile"
+    local IMAGE_NAME="$REGISTRY_URL/$IMAGE_PREFIX/$JOB"
+    local IMAGE_TAG="latest"
+    local KRAWLER_TAG="latest"
+
+    # If building from a tag, make a tagged image and use specified krawler
+    if [ -n "$GIT_TAG" ]; then
+        IMAGE_TAG="$VERSION"
+        KRAWLER_TAG="$KRAWLER_VERSION"
+    fi
+
+    # In case of job variant, update image name and source dockerfile
+    if [ -n "$JOB_VARIANT" ]; then
+        IMAGE_TAG="$JOB_VARIANT-$IMAGE_TAG"
+        DOCKERFILE="$DOCKERFILE.$JOB_VARIANT"
+    fi
+
+    begin_group "Building $IMAGE_NAME:$IMAGE_TAG container ..."
+
+    docker login --username "$REGISTRY_USERNAME" --password-stdin "$REGISTRY_URL" < "$REGISTRY_PASSWORD_FILE"
+    # DOCKER_BUILDKIT is here to be able to use Dockerfile specific dockerginore (job.Dockerfile.dockerignore)
+    DOCKER_BUILDKIT=1 docker build \
+        --build-arg KRAWLER_TAG="$KRAWLER_TAG" \
+        -f "$DOCKERFILE" \
+        -t "$IMAGE_NAME:$IMAGE_TAG" \
+        "$REPO_DIR"
+
+    if [ "$PUBLISH" = true ]; then
+        docker push "$IMAGE_NAME:$IMAGE_TAG"
+    fi
+
+    docker logout
+
+    end_group "Building $IMAGE_NAME:$IMAGE_TAG container ..."
+}
+
 # Build vitepress docs and possibly publish it on github pages
 # Expected arguments
 # 1. Root directory
