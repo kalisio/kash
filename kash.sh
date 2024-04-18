@@ -364,17 +364,6 @@ use_mongo() {
     fi
 }
 
-### Utils
-###
-
-# Try to parse semver
-# Define SEMVER variable as an array with [0] = major, [1] = minor, [2] = patch
-parse_semver() {
-    local REGEXP="^([0-9]+)\.([0-9]+)\.([0-9]+)"
-    [[ "$1" =~ $REGEXP ]]
-    SEMVER=(${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]})
-}
-
 ### Git
 ###
 
@@ -799,7 +788,7 @@ run_kli() {
 
     # Clone kli in venv if not there
     if [ ! -d "$WORK_DIR/kli" ]; then
-        git clone --depth 1 "https://github.com/kalisio/kli.git" "$WORK_DIR/kli"
+        git_shallow_clone "https://github.com/kalisio/kli.git" "$WORK_DIR/kli"
         cd "$WORK_DIR/kli" && nvm exec "$NODE_VERSION" yarn install && cd ~-
     fi
 
@@ -831,7 +820,7 @@ setup_app_workspace() {
 
     # clone development in $WORKSPACE_DIR
     local DEVELOPMENT_DIR="$WORKSPACE_DIR/development"
-    git clone --depth 1 "$DEVELOPMENT_REPO_URL" "$DEVELOPMENT_DIR"
+    git_shallow_clone "$DEVELOPMENT_REPO_URL" "$DEVELOPMENT_DIR"
 
     # fetch app name and ref (tag or branch) required
     local APP_NAME
@@ -962,12 +951,55 @@ get_app_kli_file() {
 
 # Run backend tests for the given app.
 # Expected arguments:
-# 1.
+# 1. the app repository directory
+# 2. the directory in which we'll find kli files relative to the 'development' repository root directory
+# 3. wether to publish code coverage results (boolean)
+# 4. the node version to use (16, 18, ...)
+# 5. the mongo version to use (5, 6, ...). Mongo will not be started if not provided
 run_app_tests() {
     local REPO_DIR="$1"
     local KLI_BASE="$2"
+    local CODE_COVERAGE="$3"
+    local NODE_VER="$4"
+    local MONGO_VER="$5"
+    local WORKSPACE_DIR
+    WORKSPACE_DIR="$(dirname "$REPO_DIR")"
 
+    init_app_infos "$REPO_DIR" "$WORKSPACE_DIR/development/$KLI_BASE"
 
+    local APP
+    APP=$(get_app_name)
+    local VERSION
+    VERSION=$(get_app_version)
+    local FLAVOR
+    FLAVOR=$(get_app_flavor)
+
+    echo "About to run tests for $APP v$VERSION-$FLAVOR ..."
+
+    ## Start mongo
+    ##
+
+    if [ -n "$MONGO_VER" ]; then
+        begin_group "Starting mongo $MONGO_VER ..."
+
+        use_mongo "$MONGO_VER"
+        k-mongo
+
+        end_group "Starting mongo $MONGO_VER ..."
+    fi
+
+    ## Run tests
+    ##
+
+    use_node "$NODE_VER"
+    yarn test:server
+
+    ## Publish code coverage
+    ##
+
+    if [ "$CODE_COVERAGE" = true ]; then
+        send_coverage_to_cc "$CC_TEST_REPORTER_ID"
+    fi
 }
 
 # Setup the workspace for a lib project.
@@ -1035,57 +1067,6 @@ get_lib_branch() {
     echo "${LIB_INFOS[3]}"
 }
 
-# Gather information about a job
-# Defines JOB_INFOS variable as an array. This array contains the job name & the job version along with the krawler version
-# Arg1: the repository root
-# NOTE: the results should be extracted using get_job_xxx functions below.
-init_job_infos() {
-    local REPO_ROOT="$1"
-    local JOB_NAME
-    JOB_NAME=$(node -p -e "require(\"$REPO_ROOT/package.json\").name")
-    local JOB_VERSION
-    JOB_VERSION=$(node -p -e "require(\"$REPO_ROOT/package.json\").version")
-    local KRAWLER_VERSION
-    KRAWLER_VERSION=$(node -p -e "require(\"$REPO_ROOT/package.json\").peerDependencies['@kalisio/krawler']")
-
-    local GIT_TAG
-    GIT_TAG=$(get_git_tag "$REPO_ROOT")
-    local GIT_BRANCH
-    GIT_BRANCH=$(get_git_branch "$REPO_ROOT")
-
-    JOB_INFOS=("$JOB_NAME" "$JOB_VERSION" "$GIT_TAG" "$GIT_BRANCH" "$KRAWLER_VERSION")
-}
-
-# Extract job name from job infos
-# NOTE: requires a call to init_job_infos first
-get_job_name() {
-    echo "${JOB_INFOS[0]}"
-}
-
-# Extract job version from job infos
-# NOTE: requires a call to init_job_infos first
-get_job_version() {
-    echo "${JOB_INFOS[1]}"
-}
-
-# Extract job tag from job infos
-# NOTE: requires a call to init_job_infos first
-get_job_tag() {
-    echo "${JOB_INFOS[2]}"
-}
-
-# Extract job branch from job infos
-# NOTE: requires a call to init_job_infos first
-get_job_branch() {
-    echo "${JOB_INFOS[3]}"
-}
-
-# Extract krawler version from job infos
-# NOTE: requires a call to init_job_infos first
-get_job_krawler_version() {
-    echo "${JOB_INFOS[4]}"
-}
-
 # Run tests for a library module
 # Expected arguments
 # 1. Root directory
@@ -1135,6 +1116,63 @@ run_lib_tests () {
     if [ "$CODE_COVERAGE" = true ]; then
         send_coverage_to_cc "$CC_TEST_REPORTER_ID"
     fi
+}
+
+# Setup the workspace for a krawler job project.
+# Cf. setup_lib_workspace
+setup_job_workspace() {
+    setup_lib_workspace $@
+}
+
+# Gather information about a job
+# Defines JOB_INFOS variable as an array. This array contains the job name & the job version along with the krawler version
+# Arg1: the repository root
+# NOTE: the results should be extracted using get_job_xxx functions below.
+init_job_infos() {
+    local REPO_ROOT="$1"
+    local JOB_NAME
+    JOB_NAME=$(node -p -e "require(\"$REPO_ROOT/package.json\").name")
+    local JOB_VERSION
+    JOB_VERSION=$(node -p -e "require(\"$REPO_ROOT/package.json\").version")
+    local KRAWLER_VERSION
+    KRAWLER_VERSION=$(node -p -e "require(\"$REPO_ROOT/package.json\").peerDependencies['@kalisio/krawler']")
+
+    local GIT_TAG
+    GIT_TAG=$(get_git_tag "$REPO_ROOT")
+    local GIT_BRANCH
+    GIT_BRANCH=$(get_git_branch "$REPO_ROOT")
+
+    JOB_INFOS=("$JOB_NAME" "$JOB_VERSION" "$GIT_TAG" "$GIT_BRANCH" "$KRAWLER_VERSION")
+}
+
+# Extract job name from job infos
+# NOTE: requires a call to init_job_infos first
+get_job_name() {
+    echo "${JOB_INFOS[0]}"
+}
+
+# Extract job version from job infos
+# NOTE: requires a call to init_job_infos first
+get_job_version() {
+    echo "${JOB_INFOS[1]}"
+}
+
+# Extract job tag from job infos
+# NOTE: requires a call to init_job_infos first
+get_job_tag() {
+    echo "${JOB_INFOS[2]}"
+}
+
+# Extract job branch from job infos
+# NOTE: requires a call to init_job_infos first
+get_job_branch() {
+    echo "${JOB_INFOS[3]}"
+}
+
+# Extract krawler version from job infos
+# NOTE: requires a call to init_job_infos first
+get_job_krawler_version() {
+    echo "${JOB_INFOS[4]}"
 }
 
 # Build vitepress docs and possibly publish it on github pages
