@@ -562,17 +562,21 @@ KASH_TXT_RESET="${KASH_TXT_B}0${KASH_TXT_E}"
 begin_group() {
     local TITLE="$1"
 
-    if [ "$CI_ID" = "github" ]; then
-        # see https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#grouping-log-lines
-        echo "::group::$TITLE"
-    elif [ "$CI_ID" = "gitlab" ]; then
-        # see https://docs.gitlab.com/ee/ci/jobs/#custom-collapsible-sections
-        local SECTION
-        SECTION=$(echo "$TITLE" | tr ' .' '_')
-        echo -e "section_start:$(date +%s):$SECTION\r\e[0K\e[95m$TITLE\e[0m"
-    elif [ "$CI_ID" = "travis" ]; then
-        # see
-        echo "travis_fold:start:$TITLE"
+    if [ "$CI" = true ]; then
+        if [ "$CI_ID" = "github" ]; then
+            # see https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#grouping-log-lines
+            echo "::group::$TITLE"
+        elif [ "$CI_ID" = "gitlab" ]; then
+            # see https://docs.gitlab.com/ee/ci/jobs/#custom-collapsible-sections
+            local SECTION
+            SECTION=$(echo "$TITLE" | tr ' .' '_')
+            echo -e "section_start:$(date +%s):$SECTION\r\e[0K\e[95m$TITLE\e[0m"
+        elif [ "$CI_ID" = "travis" ]; then
+            # see
+            echo "travis_fold:start:$TITLE"
+        fi
+    else
+        echo "*** $TITLE"
     fi
 }
 
@@ -581,14 +585,18 @@ begin_group() {
 end_group() {
     local TITLE="$1"
 
-    if [ "$CI_ID" = "github" ]; then
-        echo "::endgroup::"
-    elif [ "$CI_ID" = "gitlab" ]; then
-        local SECTION
-        SECTION=$(echo "$TITLE" | tr ' .' '_')
-        echo -e "section_end:$(date +%s):$SECTION\r\e[0K"
-    elif [ "$CI_ID" = "travis" ]; then
-        echo "travis_fold:end:$TITLE"
+    if [ "$CI" = true ]; then
+        if [ "$CI_ID" = "github" ]; then
+            echo "::endgroup::"
+        elif [ "$CI_ID" = "gitlab" ]; then
+            local SECTION
+            SECTION=$(echo "$TITLE" | tr ' .' '_')
+            echo -e "section_end:$(date +%s):$SECTION\r\e[0K"
+        elif [ "$CI_ID" = "travis" ]; then
+            echo "travis_fold:end:$TITLE"
+        fi
+    else
+        echo "*** $TITLE"
     fi
 }
 
@@ -1090,7 +1098,7 @@ run_lib_tests () {
     local GIT_TAG
     GIT_TAG=$(get_lib_tag)
 
-    echo "About to run tests for ${LIB} v${VERSION}..."
+    echo "About to run tests for $LIB v$VERSION..."
 
     ## Start mongo
     ##
@@ -1233,7 +1241,7 @@ build_job() {
         DOCKERFILE="$DOCKERFILE.$JOB_VARIANT"
     fi
 
-    begin_group "Building $IMAGE_NAME:$IMAGE_TAG container ..."
+    begin_group "Building $IMAGE_NAME:$IMAGE_TAG ..."
 
     docker login --username "$REGISTRY_USERNAME" --password-stdin "$REGISTRY_URL" < "$REGISTRY_PASSWORD_FILE"
     # DOCKER_BUILDKIT is here to be able to use Dockerfile specific dockerginore (job.Dockerfile.dockerignore)
@@ -1249,7 +1257,7 @@ build_job() {
 
     docker logout
 
-    end_group "Building $IMAGE_NAME:$IMAGE_TAG container ..."
+    end_group "Building $IMAGE_NAME:$IMAGE_TAG ..."
 }
 
 # Build vitepress docs and possibly publish it on github pages
@@ -1263,6 +1271,8 @@ build_docs () {
     local PUBLISH="$3"
     local WORKSPACE_DIR
     WORKSPACE_DIR="$(dirname "$ROOT_DIR")"
+
+    begin_group "Building docs for $REPOSITORY ..."
 
     # Build process requires node 18
     use_node 18
@@ -1285,6 +1295,8 @@ build_docs () {
             "$COMMIT_AUTHOR_EMAIL" \
             "Docs built from $COMMIT_SHA"
     fi
+
+    end_group "Building docs for $REPOSITORY ..."
 }
 
 # Build e2e tests
