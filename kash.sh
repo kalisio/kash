@@ -576,7 +576,7 @@ begin_group() {
             echo "travis_fold:start:$TITLE"
         fi
     else
-        echo "*** $TITLE"
+        echo "%< --- $TITLE ------"
     fi
 }
 
@@ -596,7 +596,7 @@ end_group() {
             echo "travis_fold:end:$TITLE"
         fi
     else
-        echo "*** $TITLE"
+        echo "------ $TITLE --- >%"
     fi
 }
 
