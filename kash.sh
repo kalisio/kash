@@ -510,6 +510,24 @@ get_git_commit_author_email() {
     cd ~-
 }
 
+# Shallow clone a repo (with no history), will also (shallow) clone submodules.
+# Expected args:
+# 1. the url of the repo to clone
+# 2. the directory where to clone the repo
+# 3. the ref to clone (branch or tag)
+git_shallow_clone() {
+    local REPO_URL=$1
+    local REPO_DIR=$2
+    local REPO_REF=${3:-}
+
+    local GIT_OPS="--depth 1 --recurse-submodules --shallow-submodules"
+    if [ -n "$REPO_REF" ]; then
+        GIT_OPS="$GIT_OPS --branch $REPO_REF"
+    fi
+
+    git clone $GIT_OPS "$REPO_URL" "$REPO_DIR"
+}
+
 ### Github
 ###
 
@@ -765,6 +783,35 @@ load_value_files() {
 ### Kalisio
 ###
 
+# Runs kli in a separate folder.
+# Expected args:
+# 1. the folder where to install everything
+# 2. the node version to use (16, 18 ...)
+# 3. the kli file to use
+# 4. 'klifull' to install and link using kli, anything else will only clone
+# NOTE: you should probably 'undef' environment variables before calling this
+# like KALISIO_DEVELOPMENT_DIR ...
+run_kli() {
+    local WORK_DIR="$1"
+    local NODE_VERSION="$2"
+    local KLI_FILE="$3"
+    local KLI_RUN="${4:-klifull}"
+
+    # Clone kli in venv if not there
+    if [ ! -d "$WORK_DIR/kli" ]; then
+        git clone --depth 1 "https://github.com/kalisio/kli.git" "$WORK_DIR/kli"
+        cd "$WORK_DIR/kli" && nvm exec "$NODE_VERSION" yarn install && cd ~-
+    fi
+
+    cd "$WORK_DIR"
+    nvm exec "$NODE_VERSION" node "$WORK_DIR/kli/index.js" "$KLI_FILE" --clone --shallow-clone
+    if [ "$KLI_RUN" = klifull ]; then
+        nvm exec "$NODE_VERSION" node "$WORK_DIR/kli/index.js" "$KLI_FILE" --install
+        nvm exec "$NODE_VERSION" node "$WORK_DIR/kli/index.js" "$KLI_FILE" --link --link-folder "$WORK_DIR/yarn-links"
+    fi
+    cd ~-
+}
+
 # Setup a suitable workspace for the given app.
 # Expected args:
 # 1. the app repository dir
@@ -913,30 +960,36 @@ get_app_kli_file() {
     echo "${APP_INFOS[5]}"
 }
 
-# Runs kli in a separate folder.
-# Arg1: the folder where to install everything
-# Arg2: the node version to use (16, 18 ...)
-# Arg3: the kli file to use
-# Arg4: 'klifull' to install and link using kli, anything else will only clone
-run_kli() {
-    local WORK_DIR="$1"
-    local NODE_VERSION="$2"
-    local KLI_FILE="$3"
-    local KLI_RUN="${4:-klifull}"
+# Run backend tests for the given app.
+# Expected arguments:
+# 1.
+run_app_tests() {
+    local REPO_DIR="$1"
+    local KLI_BASE="$2"
 
-    # Clone kli in venv if not there
-    if [ ! -d "$WORK_DIR/kli" ]; then
-        git clone --depth 1 "https://github.com/kalisio/kli.git" "$WORK_DIR/kli"
-        cd "$WORK_DIR/kli" && nvm exec "$NODE_VERSION" yarn install && cd ~-
-    fi
 
-    cd "$WORK_DIR"
-    nvm exec "$NODE_VERSION" node "$WORK_DIR/kli/index.js" "$KLI_FILE" --clone --shallow-clone
-    if [ "$KLI_RUN" = klifull ]; then
-        nvm exec "$NODE_VERSION" node "$WORK_DIR/kli/index.js" "$KLI_FILE" --install
-        nvm exec "$NODE_VERSION" node "$WORK_DIR/kli/index.js" "$KLI_FILE" --link --link-folder "$WORK_DIR/yarn-links"
-    fi
-    cd ~-
+}
+
+# Setup the workspace for a lib project.
+# A lib project has no kli file, but require a 'development' repo.
+# It can also depend on other repo but they must be specified as additional args
+# Expected args:
+# 1. the workspace directory
+# 2. the url of the 'development' repository
+# ... additional repo url to pull. Those additional repository will be cloned in the
+# workspace directory, using the basename of the repo url as repo directory.
+setup_lib_workspace() {
+    local WORKSPACE_DIR="$1"
+    local DEVELOPMENT_REPO_URL="$2"
+
+    # Clone development repo
+    git_shallow_clone "$DEVELOPMENT_REPO_URL" "$WORKSPACE_DIR/development"
+
+    shift 2
+    # And then additional dependencies
+    for DEPENDENCY_URL in "$@"; do
+        git_shallow_clone "$DEPENDENCY_URL" "$WORKSPACE_DIR/$(basename "$DEPENDENCY_URL" .git)"
+    done
 }
 
 # Gather information about a library
