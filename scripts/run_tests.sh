@@ -74,7 +74,7 @@ init_app_infos "$TMP_DIR/kApp.v1.0" "$TMP_DIR/kli"
 
 init_lib_infos "$TMP_DIR/feathers-s3.master"
 
-[ "$(get_lib_name)" != "feathers-s3" ] && exit 1
+[ "$(get_lib_name)" != "@kalisio/feathers-s3" ] && exit 1
 
 ## Job helpers
 
