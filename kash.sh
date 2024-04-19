@@ -1144,11 +1144,11 @@ setup_job_workspace() {
 init_job_infos() {
     local REPO_ROOT="$1"
     local JOB_NAME
-    JOB_NAME=$(node -p -e "require(\"$REPO_ROOT/package.json\").name")
+    JOB_NAME=$(yq --output-format=yaml '.name' "$REPO_ROOT/package.json")
     local JOB_VERSION
-    JOB_VERSION=$(node -p -e "require(\"$REPO_ROOT/package.json\").version")
+    JOB_VERSION=$(yq --output-format=yaml '.version' "$REPO_ROOT/package.json")
     local KRAWLER_VERSION
-    KRAWLER_VERSION=$(node -p -e "require(\"$REPO_ROOT/package.json\").peerDependencies['@kalisio/krawler']")
+    KRAWLER_VERSION=$(yq --output-format=yaml '.peerDependencies["@kalisio/krawler"]' "$REPO_ROOT/package.json")
 
     local GIT_TAG
     GIT_TAG=$(get_git_tag "$REPO_ROOT")
