@@ -51,13 +51,17 @@ git_shallow_clone https://github.com/kalisio/feathers-s3.git "$TMP_DIR/feathers-
 [ "$(get_git_commit_sha "$TMP_DIR/feathers-s3.v1.3.0" )" != "e28f53c386a2f74de7bdee7231b97e7150177cc7" ] && exit 1
 
 git_shallow_clone https://github.com/kalisio/kApp.git "$TMP_DIR/kApp.master"
-git_shallow_clone https://github.com/kalisio/kApp.git "$TMP_DIR/kApp.v1.0" test-v1.0
+git_shallow_clone https://github.com/kalisio/kApp.git "$TMP_DIR/kApp.v1.3" test-v1.3
+git_shallow_clone https://github.com/kalisio/kApp.git "$TMP_DIR/kApp.v1.3.0" prod-v1.3.0
 
 [ "$(get_git_branch "$TMP_DIR/kApp.master" )" != "master" ] && exit 1
-[ "$(get_git_branch "$TMP_DIR/kApp.v1.0" )" != "test-v1.0" ] && exit 1
+[ "$(get_git_branch "$TMP_DIR/kApp.v1.3" )" != "test-v1.3" ] && exit 1
 
 [ "$(get_git_tag "$TMP_DIR/kApp.master" )" != "" ] && exit 1
-[ "$(get_git_tag "$TMP_DIR/kApp.v1.0" )" != "" ] && exit 1
+[ "$(get_git_tag "$TMP_DIR/kApp.v1.3" )" != "" ] && exit 1
+[ "$(get_git_tag "$TMP_DIR/kApp.v1.3.0" )" != "prod-v1.3.0" ] && exit 1
+
+## App helpers
 
 init_app_infos "$TMP_DIR/kApp.master" "$TMP_DIR/kli"
 
@@ -65,11 +69,17 @@ init_app_infos "$TMP_DIR/kApp.master" "$TMP_DIR/kli"
 # [ "$(get_app_version)" != "kapp" ] && exit 1
 [ "$(get_app_flavor)" != "dev" ] && exit 1
 
-init_app_infos "$TMP_DIR/kApp.v1.0" "$TMP_DIR/kli"
+init_app_infos "$TMP_DIR/kApp.v1.3" "$TMP_DIR/kli"
 
 [ "$(get_app_name)" != "kapp" ] && exit 1
-[ "$(get_app_version)" != "1.0.0" ] && exit 1
+[ "$(get_app_version)" != "1.3.0" ] && exit 1
 [ "$(get_app_flavor)" != "test" ] && exit 1
+
+init_app_infos "$TMP_DIR/kApp.v1.3.0" "$TMP_DIR/kli"
+
+[ "$(get_app_name)" != "kapp" ] && exit 1
+[ "$(get_app_version)" != "1.3.0" ] && exit 1
+[ "$(get_app_flavor)" != "prod" ] && exit 1
 
 ## Lib helpers
 
