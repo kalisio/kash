@@ -192,6 +192,8 @@ install_nvm() {
     local DL_PATH="$DL_ROOT/nvm"
     mkdir -p "$DL_PATH" && cd "$DL_PATH"
     curl -OLsS https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh
+    # Make sure current user has a .bashrc where nvm installer will setup things since we mandate bash as execution shell
+    if [ ! -f "$HOME/.bashrc" ]; then touch "$HOME/.bashrc"; fi
     bash ./install.sh
     # We always use yarn as package manager, so tell nvm to install it with every node installation
     # cf. https://github.com/nvm-sh/nvm?tab=readme-ov-file#default-global-packages-from-file-while-installing
