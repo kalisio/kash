@@ -127,6 +127,19 @@ install_yq() {
     cd ~-
 }
 
+# Call this to ensure yq is available
+ensure_yq() {
+    set +e
+    yq --version > /dev/null
+    local RC=$?
+    set -e
+
+    if [ "$RC" -ne  0 ]; then
+        mkdir -p "$TMP_DIR/dl"
+        install_yq "$TMP_DIR/dl"
+    fi
+}
+
 # Install age in ~/.local/bin
 # Arg1: a writable folder where to write downloaded files
 install_age() {
@@ -144,6 +157,19 @@ install_age() {
     cd ~-
 }
 
+# Call this to ensure age is available
+ensure_age() {
+    set +e
+    age --version > /dev/null
+    local RC=$?
+    set -e
+
+    if [ "$RC" -ne  0 ]; then
+        mkdir -p "$TMP_DIR/dl"
+        install_age "$TMP_DIR/dl"
+    fi
+}
+
 # Install sops in ~/.local/bin
 # Arg1: a writable folder where to write downloaded files
 install_sops() {
@@ -159,6 +185,19 @@ install_sops() {
     cp sops-v${SOPS_VERSION}.linux.amd64 ~/.local/bin/sops
     chmod u+x ~/.local/bin/sops
     cd ~-
+}
+
+# Call this to ensure sops is available
+ensure_sops() {
+    set +e
+    sops --version > /dev/null
+    local RC=$?
+    set -e
+
+    if [ "$RC" -ne  0 ]; then
+        mkdir -p "$TMP_DIR/dl"
+        install_sops "$TMP_DIR/dl"
+    fi
 }
 
 # Install code climate test reporter in ~/.local/bin
@@ -341,18 +380,6 @@ install_reqs() {
     done
 }
 
-# Call this to ensure yq is available
-ensure_yq() {
-    set +e
-    yq --version > /dev/null
-    local RC=$?
-    set -e
-
-    if [ "$RC" -ne  0 ]; then
-        mkdir -p "$TMP_DIR/dl"
-        install_yq "$TMP_DIR/dl"
-    fi
-}
 
 # Select which node version is active (ie. which one is started when calling node)
 use_node() {
@@ -837,6 +864,8 @@ run_kli() {
 # 6. the kind of kli we want to run (nokli, kli or klifull => cf. run_kli())
 # 7. (only in dev mode) the ref (ie. tag or branch) to checkout in the workspace
 setup_app_workspace() {
+    ensure_yq
+
     local REPO_DIR="$1"
     local WORKSPACE_DIR="$2"
     local DEVELOPMENT_REPO_URL="$3"
@@ -850,7 +879,7 @@ setup_app_workspace() {
 
     # fetch app name and ref (tag or branch) required
     local APP_NAME
-    APP_NAME=$(node -p -e "require(\"$REPO_DIR/package.json\").name")
+    APP_NAME=$(yq --output-format=yaml '.name' "$REPO_DIR/package.json")
     local GIT_REF=""
     if [ "$CI" = true ]; then
         # fetch ref using git on local repo
@@ -901,13 +930,15 @@ setup_app_workspace() {
 # Arg2: the folder where to search for kli files
 # NOTE: the results should be extracted using get_app_xxx functions below.
 init_app_infos() {
+    ensure_yq
+
     local REPO_ROOT="$1"
     local KLI_BASE="$2"
 
     local APP_NAME
-    APP_NAME=$(node -p -e "require(\"$REPO_ROOT/package.json\").name")
+    APP_NAME=$(yq --output-format=yaml '.name' "$REPO_ROOT/package.json")
     local APP_VERSION
-    APP_VERSION=$(node -p -e "require(\"$REPO_ROOT/package.json\").version")
+    APP_VERSION=$(yq --output-format=yaml '.version' "$REPO_ROOT/package.json")
 
     KLI_BASE="$KLI_BASE/$APP_NAME"
 
@@ -1055,11 +1086,13 @@ setup_lib_workspace() {
 # Arg1: the repository root
 # NOTE: the results should be extracted using get_lib_xxx functions below.
 init_lib_infos() {
+    ensure_yq
+
     local REPO_ROOT="$1"
     local LIB_NAME
-    LIB_NAME=$(node -p -e "require(\"$REPO_ROOT/package.json\").name")
+    LIB_NAME=$(yq --output-format=yaml '.name' "$REPO_ROOT/package.json")
     local LIB_VERSION
-    LIB_VERSION=$(node -p -e "require(\"$REPO_ROOT/package.json\").version")
+    LIB_VERSION=$(yq --output-format=yaml '.version' "$REPO_ROOT/package.json")
 
     local GIT_TAG
     GIT_TAG=$(get_git_tag "$REPO_ROOT")
