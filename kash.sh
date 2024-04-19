@@ -58,6 +58,9 @@ if [ -n "$CI_ID" ]; then
                 sudo apt-get update && sudo apt-get --no-install-recommends --yes install curl ca-certificates coreutils git
             fi
             ;;
+        alpine)
+            apk update && apk add curl ca-certificates coreutils git
+            ;;
         *)
             ;;
     esac
