@@ -11,13 +11,16 @@ ROOT_DIR=$(dirname "$THIS_DIR")
 ### Github Actions
 
 init_github() {
-    install_reqs yq age sops nvm node16 node18 node20 mongo4 mongo5 mongo6
+    install_reqs yq age sops nvm node16 node18 node20 mongo4 mongo5 mongo6 mongo7 cc_test_reporter
 }
 
 if [ "$CI" = true ]; then
     begin_group "Init $CI_ID"
 
+    # Make sure installing stuff doesnt mess with cwd
+    CURRENT_DIR=$(pwd)
     init_"${CI_ID}"
+    [ "$CURRENT_DIR" != "$(pwd)" ] && exit 1
 
     end_group "Init $CI_ID"
 fi
