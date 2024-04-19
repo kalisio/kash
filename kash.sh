@@ -344,8 +344,8 @@ install_reqs() {
 # Call this to ensure yq is available
 ensure_yq() {
     set +e
-    local RC
-    RC=$(yq --version)
+    yq --version > /dev/null
+    local RC=$?
     set -e
 
     if [ "$RC" -ne  0 ]; then
