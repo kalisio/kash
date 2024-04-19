@@ -119,6 +119,7 @@ install_yq() {
         curl -OLsS https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/extract-checksum.sh
         chmod u+x extract-checksum.sh
         ./extract-checksum.sh "SHA-256" "yq_linux_amd64.tar.gz" | awk '{ print $2 " " $1}' | sha256sum --check
+        cd ~-
     fi
     cd "$DL_PATH"
     tar xf yq_linux_amd64.tar.gz
@@ -149,6 +150,7 @@ install_age() {
         mkdir -p "$DL_PATH" && cd "$DL_PATH"
         curl -OLsS https://github.com/FiloSottile/age/releases/download/v${AGE_VERSION}/age-v${AGE_VERSION}-linux-amd64.tar.gz
         # no checksum ...
+        cd ~-
     fi
     cd "$DL_PATH"
     tar xf age-v${AGE_VERSION}-linux-amd64.tar.gz
@@ -180,6 +182,7 @@ install_sops() {
         curl -OLsS https://github.com/getsops/sops/releases/download/v${SOPS_VERSION}/sops-v${SOPS_VERSION}.linux.amd64
         curl -OLsS https://github.com/getsops/sops/releases/download/v${SOPS_VERSION}/sops-v${SOPS_VERSION}.checksums.txt
         sha256sum --ignore-missing --quiet -c sops-v${SOPS_VERSION}.checksums.txt
+        cd ~-
     fi
     cd "$DL_PATH"
     cp sops-v${SOPS_VERSION}.linux.amd64 ~/.local/bin/sops
