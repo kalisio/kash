@@ -70,7 +70,7 @@ init_app_infos "$TMP_DIR/kApp.v1.0" "$TMP_DIR/kli"
 
 ## Lib helpers
 
-git clone --depth 1 https://github.com/kalisio/feathers-s3.git "$TMP_DIR/feathers-s3.master"
+# git clone --depth 1 https://github.com/kalisio/feathers-s3.git "$TMP_DIR/feathers-s3.master"
 
 init_lib_infos "$TMP_DIR/feathers-s3.master"
 
