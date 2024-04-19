@@ -68,4 +68,20 @@ init_app_infos "$TMP_DIR/kApp.v1.0" "$TMP_DIR/kli"
 [ "$(get_app_version)" != "1.0.0" ] && exit 1
 [ "$(get_app_flavor)" != "test" ] && exit 1
 
+## Lib helpers
+
+git clone --depth 1 https://github.com/kalisio/feathers-s3.git "$TMP_DIR/feathers-s3.master"
+
+init_lib_infos "$TMP_DIR/feathers-s3.master"
+
+[ "$(get_lib_name)" != "feathers-s3" ] && exit 1
+
+## Job helpers
+
+git clone --depth 1 https://github.com/kalisio/k-icos.git "$TMP_DIR/k-icos.master"
+
+init_job_infos "$TMP_DIR/k-icos.master"
+
+[ "$(get_job_name)" != "k-icos" ] && exit 1
+
 exit 0

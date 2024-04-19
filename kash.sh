@@ -180,7 +180,7 @@ install_cc_test_reporter() {
 send_coverage_to_cc() {
     local CC_TEST_REPORTER_ID=$1
     ~/.local/bin/cc-test-reporter format-coverage -t lcov coverage/lcov.info
-    ~/.local/bin/cc-test-reporter upload-coverage -r $CC_TEST_REPORTER_ID
+    ~/.local/bin/cc-test-reporter upload-coverage -r "$CC_TEST_REPORTER_ID"
 }
 
 # Make sure nvm is installed
@@ -203,17 +203,17 @@ install_nvm() {
 
 # Install node16, requires nvm to be installed
 install_node16() {
-    bash -i -c "nvm install ${NODE16_VERSION}"
+    bash -i -c "nvm install $NODE16_VERSION"
 }
 
 # Install node18, requires nvm to be installed
 install_node18() {
-    bash -i -c "nvm install ${NODE18_VERSION}"
+    bash -i -c "nvm install $NODE18_VERSION"
 }
 
 # Install node20, requires nvm to be installed
 install_node20() {
-    bash -i -c "nvm install ${NODE20_VERSION}"
+    bash -i -c "nvm install $NODE20_VERSION"
 }
 
 # Install mongo4 in ~/.local/bin/mongo4
@@ -339,6 +339,19 @@ install_reqs() {
         echo "Installing $REQ ..."
         install_"$REQ" "$TMP_DIR/dl"
     done
+}
+
+# Call this to ensure yq is available
+ensure_yq() {
+    set +e
+    local RC
+    RC=$(yq --version)
+    set -e
+
+    if [ "$RC" -ne  0 ]; then
+        mkdir -p "$TMP_DIR/dl"
+        install_yq "$TMP_DIR/dl"
+    fi
 }
 
 # Select which node version is active (ie. which one is started when calling node)
@@ -1142,6 +1155,8 @@ setup_job_workspace() {
 # Arg1: the repository root
 # NOTE: the results should be extracted using get_job_xxx functions below.
 init_job_infos() {
+    ensure_yq
+
     local REPO_ROOT="$1"
     local JOB_NAME
     JOB_NAME=$(yq --output-format=yaml '.name' "$REPO_ROOT/package.json")
