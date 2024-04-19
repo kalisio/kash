@@ -36,8 +36,8 @@ esac
 echo "Committer is $(get_git_commit_author_name "$ROOT_DIR") <$(get_git_commit_author_email "$ROOT_DIR")>"
 echo "Commit message is $(get_git_commit_message "$ROOT_DIR")"
 
-git clone --depth 1 https://github.com/kalisio/feathers-s3.git "$TMP_DIR/feathers-s3.master"
-git clone --depth 1 --branch v1.3.0 https://github.com/kalisio/feathers-s3.git "$TMP_DIR/feathers-s3.v1.3.0"
+git_shallow_clone https://github.com/kalisio/feathers-s3.git "$TMP_DIR/feathers-s3.master"
+git_shallow_clone https://github.com/kalisio/feathers-s3.git "$TMP_DIR/feathers-s3.v1.3.0" v1.3.0
 
 [ "$(get_git_branch "$TMP_DIR/feathers-s3.master" )" != "master" ] && exit 1
 [ "$(get_git_branch "$TMP_DIR/feathers-s3.v1.3.0" )" != "" ] && exit 1
@@ -47,8 +47,8 @@ git clone --depth 1 --branch v1.3.0 https://github.com/kalisio/feathers-s3.git "
 
 [ "$(get_git_commit_sha "$TMP_DIR/feathers-s3.v1.3.0" )" != "e28f53c386a2f74de7bdee7231b97e7150177cc7" ] && exit 1
 
-git clone --depth 1 https://github.com/kalisio/kApp.git "$TMP_DIR/kApp.master"
-git clone --depth 1 --branch test-v1.0 https://github.com/kalisio/kApp.git "$TMP_DIR/kApp.v1.0"
+git_shallow_clone https://github.com/kalisio/kApp.git "$TMP_DIR/kApp.master"
+git_shallow_clone https://github.com/kalisio/kApp.git "$TMP_DIR/kApp.v1.0" test-v1.0
 
 [ "$(get_git_branch "$TMP_DIR/kApp.master" )" != "master" ] && exit 1
 [ "$(get_git_branch "$TMP_DIR/kApp.v1.0" )" != "test-v1.0" ] && exit 1
@@ -78,7 +78,7 @@ init_lib_infos "$TMP_DIR/feathers-s3.master"
 
 ## Job helpers
 
-git clone --depth 1 https://github.com/kalisio/k-icos.git "$TMP_DIR/k-icos.master"
+git_shallow_clone https://github.com/kalisio/k-icos.git "$TMP_DIR/k-icos.master"
 
 init_job_infos "$TMP_DIR/k-icos.master"
 
