@@ -1327,6 +1327,7 @@ build_docs () {
     local PUBLISH="$3"
     local WORKSPACE_DIR
     WORKSPACE_DIR="$(dirname "$ROOT_DIR")"
+    local ORGANISATION="$(dirname $REPOSITORY)"
 
     begin_group "Building docs for $REPOSITORY ..."
 
@@ -1336,7 +1337,8 @@ build_docs () {
     rm -f .postcssrc.js && cd docs && yarn install && yarn build
 
     if [ "$PUBLISH" = true ]; then
-        load_env_files "$WORKSPACE_DIR/development/common/GH_PAGES_PUSH_TOKEN.enc.env"
+        # Extract organisation from token and get load corresponding env (filename is uppercase)
+        load_env_files "$WORKSPACE_DIR/development/common/${ORGANISATION^^}_GH_PAGES_PUSH_TOKEN.enc.env"
 
         local COMMIT_SHA
         COMMIT_SHA=$(get_git_commit_sha "$ROOT_DIR")
