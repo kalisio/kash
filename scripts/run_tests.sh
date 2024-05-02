@@ -67,10 +67,10 @@ setup_workspace "$TMP_DIR/fake" "https://github.com/kalisio/kApp.git" \
     "https://github.com/kalisio/feathers-s3.git" \
     "https://github.com/kalisio/feathers-import-export.git"
 
-[ -d "$TMP_DIR/fake/kApp" ] && exit 1
-[ -d "$TMP_DIR/fake/kash" ] && exit 1
-[ -d "$TMP_DIR/fake/feathers-s3" ] && exit 1
-[ -d "$TMP_DIR/fake/feathers-import-export" ] && exit 1
+# And check everything expected is in there
+[ ! -d "$TMP_DIR/fake/development" ] && exit 1
+[ ! -d "$TMP_DIR/fake/feathers-s3" ] && exit 1
+[ ! -d "$TMP_DIR/fake/feathers-import-export" ] && exit 1
 
 ## App helpers
 
