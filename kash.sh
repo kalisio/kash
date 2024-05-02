@@ -46,9 +46,12 @@ if [ -n "$CI_ID" ]; then
     echo "Running in CI mode ($CI_ID)..."
 
     # Make sure we have the requirements to run kash functions
-    if command -v curl >/dev/null && \
-       command -v git >/dev/null  && \
-       command -v sha256sum >/dev/null; then
+    set +e
+    command -v curl && command -v git && command -v sha256sum
+    RC=$?
+    set -e
+
+    if [ "$RC" -ne 0 ]; then
         case "$OS_ID" in
             debian | ubuntu)
                 if [ "$(id -u)" -eq 0 ]; then
@@ -131,7 +134,7 @@ install_yq() {
 # Call this to ensure yq is available
 ensure_yq() {
     set +e
-    yq --version > /dev/null
+    command -v yq
     local RC=$?
     set -e
 
@@ -162,7 +165,7 @@ install_age() {
 # Call this to ensure age is available
 ensure_age() {
     set +e
-    age --version > /dev/null
+    command -v age
     local RC=$?
     set -e
 
@@ -193,7 +196,7 @@ install_sops() {
 # Call this to ensure sops is available
 ensure_sops() {
     set +e
-    sops --version > /dev/null
+    command -v sops
     local RC=$?
     set -e
 
