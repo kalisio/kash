@@ -31,10 +31,6 @@ if [ "${GITHUB_ACTIONS:-}" = true ]; then
     # Add ~/.local/bin to PATH
     mkdir -p "$HOME/.local/bin"
     export PATH=$PATH:$HOME/.local/bin
-
-    # Make sure package lists are up to date
-    # sudo apt-get update
-
 elif [ "${GITLAB_CI:-}" = true ]; then
     CI_ID="gitlab"
 
@@ -50,20 +46,24 @@ if [ -n "$CI_ID" ]; then
     echo "Running in CI mode ($CI_ID)..."
 
     # Make sure we have the requirements to run kash functions
-    case "$OS_ID" in
-        debian | ubuntu)
-            if [ "$(id -u)" -eq 0 ]; then
-                apt-get update && apt-get --no-install-recommends --yes install sudo curl ca-certificates coreutils git
-            else
-                sudo apt-get update && sudo apt-get --no-install-recommends --yes install curl ca-certificates coreutils git
-            fi
-            ;;
-        alpine)
-            apk update && apk add curl ca-certificates coreutils git
-            ;;
-        *)
-            ;;
-    esac
+    if command -v curl >/dev/null && \
+       command -v git >/dev/null  && \
+       command -v sha256sum >/dev/null; then
+        case "$OS_ID" in
+            debian | ubuntu)
+                if [ "$(id -u)" -eq 0 ]; then
+                    apt-get update && apt-get --no-install-recommends --yes install sudo curl ca-certificates coreutils git
+                else
+                    sudo apt-get update && sudo apt-get --no-install-recommends --yes install curl ca-certificates coreutils git
+                fi
+                ;;
+            alpine)
+                apk update && apk add curl ca-certificates coreutils git
+                ;;
+            *)
+                ;;
+        esac
+    fi
 
     # Emulate development k-mongo when running on CI
     cat <<EOF > ~/.local/bin/k-mongo
