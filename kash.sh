@@ -47,7 +47,7 @@ if [ -n "$CI_ID" ]; then
 
     # Make sure we have the requirements to run kash functions
     set +e
-    command -v curl && command -v git && command -v sha256sum
+    command -v curl >/dev/null 2>&1 && command -v git >/dev/null 2>&1 && command -v sha256sum >/dev/null 2>&1
     RC=$?
     set -e
 
@@ -134,7 +134,7 @@ install_yq() {
 # Call this to ensure yq is available
 ensure_yq() {
     set +e
-    command -v yq
+    command -v yq >/dev/null 2>&1
     local RC=$?
     set -e
 
@@ -165,7 +165,7 @@ install_age() {
 # Call this to ensure age is available
 ensure_age() {
     set +e
-    command -v age
+    command -v age >/dev/null 2>&1
     local RC=$?
     set -e
 
@@ -196,7 +196,7 @@ install_sops() {
 # Call this to ensure sops is available
 ensure_sops() {
     set +e
-    command -v sops
+    command -v sops >/dev/null 2>&1
     local RC=$?
     set -e
 

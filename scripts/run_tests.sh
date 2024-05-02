@@ -14,6 +14,15 @@ init_github() {
     install_reqs yq age sops nvm node16 node18 node20 mongo4 mongo5 mongo6 mongo7 cc_test_reporter
 }
 
+ensure_yq
+ensure_age
+ensure_sops
+
+# These can't fail since we ensured bins were installed
+command -v yq
+command -v age
+command -v sops
+
 if [ "$CI" = true ]; then
     begin_group "Init $CI_ID"
 
