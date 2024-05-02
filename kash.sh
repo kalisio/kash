@@ -79,9 +79,10 @@ EOF
     export TERM=xterm-color
 
     # Allow nvm to work on alpine distro (downloads an unofficial build targeting musl libc)
-    if [ "$OS_ID" = "alpine " ]; then
+    if [ "$OS_ID" = "alpine" ]; then
         export NVM_NODEJS_ORG_MIRROR="https://unofficial-builds.nodejs.org/download/release" # Set up unofficial builds
     fi
+fi
 
 # If nvm is present, make it available to script
 if [ -d "$HOME/.nvm" ]; then
