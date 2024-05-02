@@ -12,3 +12,19 @@ jobs:
         # env:
         #   SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
         run: bash ./scripts/run_tests.sh
+
+  run_container_tests:
+    name: Run tests in containers
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        image: [ "debian:12", "alpine:3.18" ]
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Run tests
+        # env:
+        #   SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+        run: bash ./scripts/run_tests.sh
