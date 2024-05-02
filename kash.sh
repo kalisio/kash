@@ -102,15 +102,21 @@ fi
 ### Requirements
 ###
 
+# Cf. https://github.com/mikefarah/yq/releases
 YQ_VERSION=4.40.5
+# Cf. https://github.com/FiloSottile/age/releases
 AGE_VERSION=1.1.1
+# Cf. https://github.com/getsops/sops/releases
 SOPS_VERSION=3.8.1
 
+# Cf. ttps://github.com/nvm-sh/nvm/releases
 NVM_VERSION=0.39.7
+# Cf. https://nodejs.org/en/about/previous-releases#looking-for-latest-release-of-a-version-branch
 NODE16_VERSION=16.20.2
 NODE18_VERSION=18.19.1
 NODE20_VERSION=20.11.1
 
+# Cf. https://www.mongodb.com/try/download/community
 MONGODB4_VERSION=4.4.28
 MONGODB5_VERSION=5.0.24
 MONGODB6_VERSION=6.0.13
