@@ -41,7 +41,7 @@ fi
 mkdir -p "$TMP_DIR/utils"
 cd "$TMP_DIR/utils"
 curl -OLsS "https://raw.githubusercontent.com/kalisio/krawler/master/package.json"
-[ "$(get_json_value "$TMP_DIR/utils/package.json" ".name")" != "@kalisio/krawler" ] && exit 1
+[ "$(get_json_value "$TMP_DIR/utils/package.json" 'name')" != "@kalisio/krawler" ] && exit 1
 cd ~-
 
 ## Git helpers

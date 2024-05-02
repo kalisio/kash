@@ -437,7 +437,7 @@ get_json_value() {
     local JSON_FIELD="$2"
 
     ensure_yq
-    yq --output-format=yaml $JSON_FIELD "$JSON_SRC"
+    yq --output-format=yaml ".$JSON_FIELD" "$JSON_SRC"
 }
 
 ### Git
