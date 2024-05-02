@@ -79,6 +79,9 @@ EOF
     export TERM=xterm-color
 
     # Allow nvm to work on alpine distro (downloads an unofficial build targeting musl libc)
+    # See:
+    #   - https://github.com/nvm-sh/nvm/issues/1102#issuecomment-1112898778
+    #   - https://github.com/nvm-sh/nvm/pull/3212
     if [ "$OS_ID" = "alpine" ]; then
         export NVM_NODEJS_ORG_MIRROR="https://unofficial-builds.nodejs.org/download/release" # Set up unofficial builds
     fi
@@ -240,6 +243,13 @@ send_coverage_to_cc() {
 install_nvm() {
     local DL_ROOT=$1
     local DL_PATH="$DL_ROOT/nvm"
+
+    # Node builds for alpine x64/musl required libstdc++
+    # See. https://github.com/nvm-sh/nvm/issues/1102#issuecomment-550572252
+    if [ "$OS_ID" = "alpine" ] && [ "$CI" = true ]; then
+        apk add libstdc++
+    fi
+
     mkdir -p "$DL_PATH" && cd "$DL_PATH"
     curl -OLsS https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh
     # Make sure current user has a .bashrc where nvm installer will setup things since we mandate bash as execution shell
