@@ -383,7 +383,6 @@ install_reqs() {
     done
 }
 
-
 # Select which node version is active (ie. which one is started when calling node)
 use_node() {
     local VERSION=$1
@@ -857,6 +856,28 @@ run_kli() {
     cd ~-
 }
 
+# Setup the workspace for a 'simple' project.
+# A 'simple' project has no kli file, but require a 'development' repo.
+# It can also depend on other repo but they must be specified as additional args
+# Expected args:
+# 1. the workspace directory
+# 2. the url of the 'development' repository
+# ... additional repo url to pull. Those additional repository will be cloned in the
+# workspace directory, using the basename of the repo url as repo directory.
+setup_workspace() {
+    local WORKSPACE_DIR="$1"
+    local DEVELOPMENT_REPO_URL="$2"
+
+    # Clone development repo
+    git_shallow_clone "$DEVELOPMENT_REPO_URL" "$WORKSPACE_DIR/development"
+
+    shift 2
+    # And then additional dependencies
+    for DEPENDENCY_URL in "$@"; do
+        git_shallow_clone "$DEPENDENCY_URL" "$WORKSPACE_DIR/$(basename "$DEPENDENCY_URL" .git)"
+    done
+}
+
 # Setup a suitable workspace for the given app.
 # Expected args:
 # 1. the app repository dir
@@ -1071,17 +1092,7 @@ run_app_tests() {
 # ... additional repo url to pull. Those additional repository will be cloned in the
 # workspace directory, using the basename of the repo url as repo directory.
 setup_lib_workspace() {
-    local WORKSPACE_DIR="$1"
-    local DEVELOPMENT_REPO_URL="$2"
-
-    # Clone development repo
-    git_shallow_clone "$DEVELOPMENT_REPO_URL" "$WORKSPACE_DIR/development"
-
-    shift 2
-    # And then additional dependencies
-    for DEPENDENCY_URL in "$@"; do
-        git_shallow_clone "$DEPENDENCY_URL" "$WORKSPACE_DIR/$(basename "$DEPENDENCY_URL" .git)"
-    done
+    setup_workspace $@
 }
 
 # Gather information about a library
@@ -1183,7 +1194,7 @@ run_lib_tests () {
 # Setup the workspace for a krawler job project.
 # Cf. setup_lib_workspace
 setup_job_workspace() {
-    setup_lib_workspace $@
+    setup_workspace $@
 }
 
 # Gather information about a job
