@@ -78,11 +78,9 @@ EOF
     # Most CI services understand ANSI colors
     export TERM=xterm-color
 
-    # Allow nvm to work on alpine distro
+    # Allow nvm to work on alpine distro (downloads an unofficial build targeting musl libc)
     if [ "$OS_ID" = "alpine " ]; then
-        export NVM_NODEJS_ORG_MIRROR=https://unofficial-builds.nodejs.org/download/release # Set up unofficial builds
-        export NVM_IOJS_ORG_MIRROR=https://example.com # (Optional) Disable IOJS from appearing on ls-remote
-        nvm_get_arch() { nvm_echo x64-musl; } # Needed to build the download URL
+        export NVM_NODEJS_ORG_MIRROR="https://unofficial-builds.nodejs.org/download/release" # Set up unofficial builds
     fi
 
 # If nvm is present, make it available to script
