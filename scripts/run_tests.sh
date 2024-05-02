@@ -14,6 +14,8 @@ init_github() {
     install_reqs yq age sops nvm node16 node18 node20 mongo4 mongo5 mongo6 mongo7 cc_test_reporter
 }
 
+## Requirements helpers
+
 ensure_yq
 ensure_age
 ensure_sops
@@ -33,6 +35,16 @@ if [ "$CI" = true ]; then
 
     end_group "Init $CI_ID"
 fi
+
+## Utils
+
+mkdir -p "$TMP_DIR/utils"
+cd "$TMP_DIR/utils"
+curl -OLsS "https://raw.githubusercontent.com/kalisio/krawler/master/package.json"
+[ "$(get_json_value "$TMP_DIR/utils/package.json" ".name")" != "@kalisio/krawler" ] && exit 1
+cd ~-
+
+## Git helpers
 
 case "$CI_ID" in
     github)
@@ -69,6 +81,8 @@ git_shallow_clone https://github.com/kalisio/kApp.git "$TMP_DIR/kApp.v1.3.0" pro
 [ "$(get_git_tag "$TMP_DIR/kApp.master" )" != "" ] && exit 1
 [ "$(get_git_tag "$TMP_DIR/kApp.v1.3" )" != "" ] && exit 1
 [ "$(get_git_tag "$TMP_DIR/kApp.v1.3.0" )" != "prod-v1.3.0" ] && exit 1
+
+## Kalisio helpers
 
 # Setup a fake workspace with additional dependencies
 mkdir -p "$TMP_DIR/fake"

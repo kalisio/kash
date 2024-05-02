@@ -414,6 +414,17 @@ use_mongo() {
     fi
 }
 
+### Utils
+###
+
+get_json_value() {
+    local JSON_SRC="$1"
+    local JSON_FIELD="$2"
+
+    ensure_yq
+    yq --output-format=yaml $JSON_FIELD "$JSON_SRC"
+}
+
 ### Git
 ###
 
