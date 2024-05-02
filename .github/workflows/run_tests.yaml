@@ -24,6 +24,9 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+      - name: Add bash to alpine
+        if: ${{ contains(matrix.os, 'alpine') }}
+        run: apk add bash
       - name: Run tests
         # env:
         #   SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
