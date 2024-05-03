@@ -17,6 +17,8 @@ init_github() {
     if [ "$OS_ID" != "alpine" ]; then
         install_reqs mongo4 mongo5 mongo6 mongo7
     fi
+
+    install_reqs kubectl helm helmfile k9s
 }
 
 ## Requirements helpers

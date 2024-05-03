@@ -102,21 +102,30 @@ fi
 ### Requirements
 ###
 
-# Cf. https://github.com/mikefarah/yq/releases
+# https://github.com/mikefarah/yq/releases
 YQ_VERSION=4.40.5
-# Cf. https://github.com/FiloSottile/age/releases
+# https://github.com/FiloSottile/age/releases
 AGE_VERSION=1.1.1
-# Cf. https://github.com/getsops/sops/releases
+# https://github.com/getsops/sops/releases
 SOPS_VERSION=3.8.1
 
-# Cf. ttps://github.com/nvm-sh/nvm/releases
+# https://github.com/kubernetes/kubernetes/tree/master/CHANGELOG
+KUBECTL_VERSION=1.25.16
+# https://github.com/helm/helm/releases
+HELM_VERSION=3.11.3
+# https://github.com/helmfile/helmfile/releases
+HELMFILE_VERSION=0.153.0
+# https://github.com/derailed/k9s/releases
+K9S_VERSION=0.32.4
+
+# https://github.com/nvm-sh/nvm/releases
 NVM_VERSION=0.39.7
-# Cf. https://nodejs.org/en/about/previous-releases#looking-for-latest-release-of-a-version-branch
+# https://nodejs.org/en/about/previous-releases#looking-for-latest-release-of-a-version-branch
 NODE16_VERSION=16.20.2
 NODE18_VERSION=18.19.1
 NODE20_VERSION=20.11.1
 
-# Cf. https://www.mongodb.com/try/download/community
+# https://www.mongodb.com/try/download/community
 MONGODB4_VERSION=4.4.28
 MONGODB5_VERSION=5.0.24
 MONGODB6_VERSION=6.0.13
@@ -136,7 +145,6 @@ install_yq() {
         curl -OLsS https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/extract-checksum.sh
         chmod u+x extract-checksum.sh
         ./extract-checksum.sh "SHA-256" "yq_linux_amd64.tar.gz" | awk '{ print $2 " " $1}' | sha256sum --check
-        cd ~-
     fi
     cd "$DL_PATH"
     tar xf yq_linux_amd64.tar.gz
@@ -167,7 +175,6 @@ install_age() {
         mkdir -p "$DL_PATH" && cd "$DL_PATH"
         curl -OLsS https://github.com/FiloSottile/age/releases/download/v${AGE_VERSION}/age-v${AGE_VERSION}-linux-amd64.tar.gz
         # no checksum ...
-        cd ~-
     fi
     cd "$DL_PATH"
     tar xf age-v${AGE_VERSION}-linux-amd64.tar.gz
@@ -199,7 +206,6 @@ install_sops() {
         curl -OLsS https://github.com/getsops/sops/releases/download/v${SOPS_VERSION}/sops-v${SOPS_VERSION}.linux.amd64
         curl -OLsS https://github.com/getsops/sops/releases/download/v${SOPS_VERSION}/sops-v${SOPS_VERSION}.checksums.txt
         sha256sum --ignore-missing --quiet -c sops-v${SOPS_VERSION}.checksums.txt
-        cd ~-
     fi
     cd "$DL_PATH"
     cp sops-v${SOPS_VERSION}.linux.amd64 ~/.local/bin/sops
@@ -225,10 +231,13 @@ ensure_sops() {
 install_cc_test_reporter() {
     local DL_ROOT=$1
     local DL_PATH="$DL_ROOT/cc"
-    mkdir -p "$DL_PATH" && cd "$DL_PATH"
-    curl -OLsS https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64
-    curl -OLsS https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64.sha256
-    sha256sum --ignore-missing --quiet -c test-reporter-latest-linux-amd64.sha256
+    if [ ! -d "$DL_PATH" ]; then
+        mkdir -p "$DL_PATH" && cd "$DL_PATH"
+        curl -OLsS https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64
+        curl -OLsS https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64.sha256
+        sha256sum --ignore-missing --quiet -c test-reporter-latest-linux-amd64.sha256
+    fi
+    cd "$DL_PATH"
     cp test-reporter-latest-linux-amd64 ~/.local/bin/cc-test-reporter
     chmod +x ~/.local/bin/cc-test-reporter
     cd ~-
@@ -393,6 +402,66 @@ install_mongo7() {
     cp -fR "mongodb-linux-x86_64-${MONGODB_SUFFIX}/bin/mongod" ~/.local/bin/mongo7
     sudo mkdir -p /var/lib/mongo7 && sudo mkdir -p /var/log/mongodb7
     sudo chmod a+rwx /var/lib/mongo7 && sudo chmod a+rwx /var/log/mongodb7
+    cd ~-
+}
+
+install_kubectl() {
+    local DL_ROOT=$1
+    local DL_PATH="$DL_ROOT/kubectl"
+    if [ ! -d "$DL_PATH" ]; then
+        mkdir -p "$DL_PATH" && cd "$DL_PATH"
+        curl -OLsS https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl && \
+        curl -OLsS https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl.sha256 && \
+        echo "$(cat kubectl.sha256) kubectl" | sha256sum --check
+    fi
+    cd "$DL_PATH"
+    mv kubectl ~/.local/bin/kubectl
+    chmod u+x ~/.local/bin/yq
+    cd ~-
+}
+
+install_helm() {
+    local DL_ROOT=$1
+    local DL_PATH="$DL_ROOT/helm"
+    if [ ! -d "$DL_PATH" ]; then
+        mkdir -p "$DL_PATH" && cd "$DL_PATH"
+        curl -OLsS https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz
+        curl -OLsS https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz.sha256sum
+        sha256sum --ignore-missing --quiet -c helm-v${HELM_VERSION}-linux-amd64.tar.gz.sha256sum
+    fi
+    cd "$DL_PATH"
+    tar xf helm-v${HELM_VERSION}-linux-amd64.tar.gz
+    cp linux-amd64/helm ~/.local/bin
+    cd ~-
+}
+
+install_helmfile() {
+    local DL_ROOT=$1
+    local DL_PATH="$DL_ROOT/helmfile"
+    if [ ! -d "$DL_PATH" ]; then
+        mkdir -p "$DL_PATH" && cd "$DL_PATH"
+        curl -OLsS https://github.com/helmfile/helmfile/releases/download/v${HELMFILE_VERSION}/helmfile_${HELMFILE_VERSION}_linux_amd64.tar.gz
+        curl -OLsS https://github.com/helmfile/helmfile/releases/download/v${HELMFILE_VERSION}/helmfile_${HELMFILE_VERSION}_checksums.txt
+        sha256sum --ignore-missing --quiet -c helmfile_${HELMFILE_VERSION}_checksums.txt
+    fi
+    cd "$DL_PATH"
+    tar xf helmfile_${HELMFILE_VERSION}_linux_amd64.tar.gz
+    cp helmfile ~/.local/bin
+    cd ~-
+}
+
+install_k9s() {
+    local DL_ROOT=$1
+    local DL_PATH="$DL_ROOT/k9s"
+    if [ ! -d "$DL_PATH" ]; then
+        mkdir -p "$DL_PATH" && cd "$DL_PATH"
+        curl -OLsS https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_amd64.tar.gz
+        curl -OLsS https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/checksums.sha256
+        sha256sum --ignore-missing --quiet -c checksums.sha256
+    fi
+    cd "$DL_PATH"
+    tar xf k9s_Linux_amd64.tar.gz
+    cp k9s ~/.local/bin
     cd ~-
 }
 
