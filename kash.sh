@@ -145,6 +145,7 @@ install_yq() {
         curl -OLsS https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/extract-checksum.sh
         chmod u+x extract-checksum.sh
         ./extract-checksum.sh "SHA-256" "yq_linux_amd64.tar.gz" | awk '{ print $2 " " $1}' | sha256sum --check
+        cd ~-
     fi
     cd "$DL_PATH"
     tar xf yq_linux_amd64.tar.gz
@@ -175,6 +176,7 @@ install_age() {
         mkdir -p "$DL_PATH" && cd "$DL_PATH"
         curl -OLsS https://github.com/FiloSottile/age/releases/download/v${AGE_VERSION}/age-v${AGE_VERSION}-linux-amd64.tar.gz
         # no checksum ...
+        cd ~-
     fi
     cd "$DL_PATH"
     tar xf age-v${AGE_VERSION}-linux-amd64.tar.gz
@@ -206,6 +208,7 @@ install_sops() {
         curl -OLsS https://github.com/getsops/sops/releases/download/v${SOPS_VERSION}/sops-v${SOPS_VERSION}.linux.amd64
         curl -OLsS https://github.com/getsops/sops/releases/download/v${SOPS_VERSION}/sops-v${SOPS_VERSION}.checksums.txt
         sha256sum --ignore-missing --quiet -c sops-v${SOPS_VERSION}.checksums.txt
+        cd ~-
     fi
     cd "$DL_PATH"
     cp sops-v${SOPS_VERSION}.linux.amd64 ~/.local/bin/sops
@@ -236,6 +239,7 @@ install_cc_test_reporter() {
         curl -OLsS https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64
         curl -OLsS https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64.sha256
         sha256sum --ignore-missing --quiet -c test-reporter-latest-linux-amd64.sha256
+        cd ~-
     fi
     cd "$DL_PATH"
     cp test-reporter-latest-linux-amd64 ~/.local/bin/cc-test-reporter
@@ -405,6 +409,9 @@ install_mongo7() {
     cd ~-
 }
 
+# Install kubectl in ~/.local/bin
+# Expected args:
+#  1. a writable folder where to write downloaded files
 install_kubectl() {
     local DL_ROOT=$1
     local DL_PATH="$DL_ROOT/kubectl"
@@ -413,6 +420,7 @@ install_kubectl() {
         curl -OLsS https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl && \
         curl -OLsS https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl.sha256 && \
         echo "$(cat kubectl.sha256) kubectl" | sha256sum --check
+        cd ~-
     fi
     cd "$DL_PATH"
     mv kubectl ~/.local/bin/kubectl
@@ -420,6 +428,9 @@ install_kubectl() {
     cd ~-
 }
 
+# Install helm in ~/.local/bin
+# Expected args:
+#  1. a writable folder where to write downloaded files
 install_helm() {
     local DL_ROOT=$1
     local DL_PATH="$DL_ROOT/helm"
@@ -428,6 +439,7 @@ install_helm() {
         curl -OLsS https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz
         curl -OLsS https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz.sha256sum
         sha256sum --ignore-missing --quiet -c helm-v${HELM_VERSION}-linux-amd64.tar.gz.sha256sum
+        cd ~-
     fi
     cd "$DL_PATH"
     tar xf helm-v${HELM_VERSION}-linux-amd64.tar.gz
@@ -435,6 +447,9 @@ install_helm() {
     cd ~-
 }
 
+# Install helmfile in ~/.local/bin
+# Expected args:
+#  1. a writable folder where to write downloaded files
 install_helmfile() {
     local DL_ROOT=$1
     local DL_PATH="$DL_ROOT/helmfile"
@@ -443,6 +458,7 @@ install_helmfile() {
         curl -OLsS https://github.com/helmfile/helmfile/releases/download/v${HELMFILE_VERSION}/helmfile_${HELMFILE_VERSION}_linux_amd64.tar.gz
         curl -OLsS https://github.com/helmfile/helmfile/releases/download/v${HELMFILE_VERSION}/helmfile_${HELMFILE_VERSION}_checksums.txt
         sha256sum --ignore-missing --quiet -c helmfile_${HELMFILE_VERSION}_checksums.txt
+        cd ~-
     fi
     cd "$DL_PATH"
     tar xf helmfile_${HELMFILE_VERSION}_linux_amd64.tar.gz
@@ -450,6 +466,9 @@ install_helmfile() {
     cd ~-
 }
 
+# Install k9s in ~/.local/bin
+# Expected args:
+#  1. a writable folder where to write downloaded files
 install_k9s() {
     local DL_ROOT=$1
     local DL_PATH="$DL_ROOT/k9s"
@@ -458,6 +477,7 @@ install_k9s() {
         curl -OLsS https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_amd64.tar.gz
         curl -OLsS https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/checksums.sha256
         sha256sum --ignore-missing --quiet -c checksums.sha256
+        cd ~-
     fi
     cd "$DL_PATH"
     tar xf k9s_Linux_amd64.tar.gz
