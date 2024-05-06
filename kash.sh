@@ -309,7 +309,9 @@ install_mongo4() {
             local MONGODB_SUFFIX=debian10-${MONGODB4_VERSION}
             ;;
         ubuntu)
-            DEBIAN_FRONTEND=noninteractive && sudo apt-get --no-install-recommends --yes install libssl1.1
+            # NOTE: this assumes ubuntu 22.04
+            curl -OLss http://launchpadlibrarian.net/715615335/libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
+            DEBIAN_FRONTEND=noninteractive && sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
             local MONGODB_SUFFIX=ubuntu2004-${MONGODB4_VERSION}
             ;;
         *)
@@ -338,7 +340,9 @@ install_mongo5() {
             local MONGODB_SUFFIX=debian11-${MONGODB5_VERSION}
             ;;
         ubuntu)
-            DEBIAN_FRONTEND=noninteractive && sudo apt-get --no-install-recommends --yes install libssl1.1
+            # NOTE: this assumes ubuntu 22.04
+            curl -OLss http://launchpadlibrarian.net/715615335/libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
+            DEBIAN_FRONTEND=noninteractive && sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
             local MONGODB_SUFFIX=ubuntu2004-${MONGODB5_VERSION}
             ;;
         *)
