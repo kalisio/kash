@@ -102,6 +102,10 @@ setup_workspace "$TMP_DIR/fake" "https://github.com/kalisio/kApp.git" \
 [ ! -d "$TMP_DIR/fake/feathers-s3" ] && exit 1
 [ ! -d "$TMP_DIR/fake/feathers-import-export" ] && exit 1
 
+[ "$(get_flavor_from_git "$TMP_DIR/kApp.master" )" != "dev" ] && exit 1
+[ "$(get_flavor_from_git "$TMP_DIR/kApp.v1.3" )" != "test" ] && exit 1
+[ "$(get_flavor_from_git "$TMP_DIR/kApp.v1.3.0" )" != "prod" ] && exit 1
+
 ## App helpers
 
 init_app_infos "$TMP_DIR/kApp.master" "$TMP_DIR/kli"

@@ -955,6 +955,30 @@ load_value_files() {
 ### Kalisio
 ###
 
+# Returns the kalisio flavor (prod, test, dev) according to current branch/tag name
+# Expected args:
+# 1. the repository root folder
+get_flavor_from_git() {
+    local REPO_DIR=$1
+    # Matches 'test' but also 'test-v1.2'
+    local TEST_FLAVOR_REGEX="^test(-v[0-9]+\.[0-9]+)?$"
+    # Only matches 'prod-v1.2.3'
+    local PROD_FLAVOR_REGEX="^prod-v[0-9]+\.[0-9]+\.[0-9]+$"
+
+    local GIT_TAG
+    GIT_TAG=$(get_git_tag "$REPO_DIR")
+    local GIT_BRANCH
+    GIT_BRANCH=$(get_git_branch "$REPO_DIR")
+
+    if [[ "$GIT_TAG" =~ $PROD_FLAVOR_REGEX ]]; then
+        printf "prod"
+    elif [[ "$GIT_BRANCH" =~ $TEST_FLAVOR_REGEX ]]; then
+        printf "test"
+    else
+        printf "dev"
+    fi
+}
+
 # Runs kli in a separate folder.
 # Expected args:
 # 1. the folder where to install everything
