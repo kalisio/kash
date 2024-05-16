@@ -979,6 +979,37 @@ get_flavor_from_git() {
     fi
 }
 
+# Returns the git ref that produced the given container tag.
+# Eg.
+#   - container tag is 2.2.0-test => git ref = test-v2.2
+#   - container tag is 2.2.2-prod => git ref = prod-v2.2.2
+#   - container tag is 2.2.2-dev => git ref = master
+# Expected args:
+# 1. the container tag
+get_git_ref_from_container_tag() {
+    local CONTAINER_TAG=$1
+    local CONTAINER_TAG_REGEX="^([0-9]+\.[0-9]+\.[0-9]+)-(.*)$"
+    if [[ "$CONTAINER_TAG" =~ $CONTAINER_TAG_REGEX ]]; then
+        if [ "${BASH_REMATCH[2]}" = "prod" ]; then
+            # Prod container => tag is prod-v1.2.3
+            printf "%s-v%s" "${BASH_REMATCH[2]}" "${BASH_REMATCH[1]}"
+        elif [ "${BASH_REMATCH[2]}" = "test" ]; then
+            # Test container => branch is test-v1.2 (or just test)
+            printf "%s-v%s" "${BASH_REMATCH[2]}" "${BASH_REMATCH[1]%.*}"
+        else
+            # Dev container => branch is master
+            printf "master"
+        fi
+    fi
+
+    # Also possible to find just 'test' or 'dev' as container tags
+    if [ "$CONTAINER_TAG" = "test" ]; then
+        printf "test"
+    elif [ "$CONTAINER_TAG" = "dev" ]; then
+        printf "master"
+    fi
+}
+
 # Runs kli in a separate folder.
 # Expected args:
 # 1. the folder where to install everything

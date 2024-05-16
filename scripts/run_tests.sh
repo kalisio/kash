@@ -106,6 +106,12 @@ setup_workspace "$TMP_DIR/fake" "https://github.com/kalisio/kApp.git" \
 [ "$(get_flavor_from_git "$TMP_DIR/kApp.v1.3" )" != "test" ] && exit 1
 [ "$(get_flavor_from_git "$TMP_DIR/kApp.v1.3.0" )" != "prod" ] && exit 1
 
+[ "$(get_git_ref_from_container_tag "1.1.1-test")" != "test-v1.1" ] && exit 1
+[ "$(get_git_ref_from_container_tag "test")" != "test" ] && exit 1
+[ "$(get_git_ref_from_container_tag "1.1.1-prod")" != "prod-v1.1.1" ] && exit 1
+[ "$(get_git_ref_from_container_tag "1.1.1-dev")" != "master" ] && exit 1
+[ "$(get_git_ref_from_container_tag "dev")" != "master" ] && exit 1
+
 ## App helpers
 
 init_app_infos "$TMP_DIR/kApp.master" "$TMP_DIR/kli"
