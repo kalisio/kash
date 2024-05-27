@@ -144,7 +144,7 @@ install_yq() {
         curl -OLsS https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/checksums_hashes_order
         curl -OLsS https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/extract-checksum.sh
         chmod u+x extract-checksum.sh
-        ./extract-checksum.sh "SHA-256" "yq_linux_amd64.tar.gz" | awk '{ print $2 " " $1}' | sha256sum --check
+        ./extract-checksum.sh "SHA-256" "yq_linux_amd64.tar.gz" | awk '{ print $2 " " $1}' | sha256sum --check --quiet
         cd ~-
     fi
     cd "$DL_PATH"
@@ -744,7 +744,7 @@ begin_group() {
         elif [ "$CI_ID" = "gitlab" ]; then
             # see https://docs.gitlab.com/ee/ci/jobs/#custom-collapsible-sections
             local SECTION
-            SECTION=$(echo "$TITLE" | tr ' .' '_')
+            SECTION=$(echo "$TITLE" | tr ' .:-' '_')
             echo -e "section_start:$(date +%s):$SECTION\r\e[0K\e[95m$TITLE\e[0m"
         elif [ "$CI_ID" = "travis" ]; then
             # see
@@ -765,7 +765,7 @@ end_group() {
             echo "::endgroup::"
         elif [ "$CI_ID" = "gitlab" ]; then
             local SECTION
-            SECTION=$(echo "$TITLE" | tr ' .' '_')
+            SECTION=$(echo "$TITLE" | tr ' .:-' '_')
             echo -e "section_end:$(date +%s):$SECTION\r\e[0K"
         elif [ "$CI_ID" = "travis" ]; then
             echo "travis_fold:end:$TITLE"
