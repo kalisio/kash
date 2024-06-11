@@ -571,19 +571,15 @@ get_git_tag() {
 # Returns the current git branch (might be empty string if on a tag and repo was checked out with --depth 1)
 # Arg1: the repository root
 get_git_branch() {
-    local REPO_ROOT="$1"
-    cd "$REPO_ROOT"
-    git branch --show-current
-
-    # case "$CI_ID" in
+    case "$CI_ID" in
+        gitlab)
+            if [ -z "$CI_COMMIT_TAG" ]; then
+                echo "$CI_COMMIT_REF_NAME"
+            fi
+            ;;
     #     github)
     #         if [ "$GITHUB_REF_TYPE" = "branch" ]; then
     #            echo "$GITHUB_REF_NAME"
-    #         fi
-    #         ;;
-    #     gitlab)
-    #         if [ -z "$CI_COMMIT_TAG" ]; then
-    #             echo "$CI_COMMIT_REF_NAME"
     #         fi
     #         ;;
     #     travis)
@@ -591,11 +587,13 @@ get_git_branch() {
     #             echo "$TRAVIS_BRANCH"
     #         fi
     #         ;;
-    #     *)
-    #         git branch --show-current
-    #         ;;
-    # esac
-    cd ~-
+        *)
+            local REPO_ROOT="$1"
+            cd "$REPO_ROOT"
+            git branch --show-current
+            cd ~-
+            ;;
+    esac
 }
 
 # Returns the current git commit sha, always defined
