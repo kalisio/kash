@@ -573,7 +573,7 @@ get_git_tag() {
 get_git_branch() {
     case "$CI_ID" in
         gitlab)
-            if [ -z "$CI_COMMIT_TAG" ]; then
+            if [ -z "${CI_COMMIT_TAG:-}" ]; then
                 echo "$CI_COMMIT_REF_NAME"
             fi
             ;;
