@@ -545,27 +545,25 @@ get_json_value() {
 # Returns the current git tag (or empty string if not on a tag)
 # Arg1: the repository root
 get_git_tag() {
-    local REPO_ROOT="$1"
-    cd "$REPO_ROOT"
-    git tag --points-at
-
-    # case "$CI_ID" in
+    case "$CI_ID" in
+        gitlab)
+            echo "${CI_COMMIT_TAG:-}"
+            ;;
     #     github)
     #         if [ "$GITHUB_REF_TYPE" = "tag" ]; then
     #            echo "$GITHUB_REF_NAME"
     #         fi
     #         ;;
-    #     gitlab)
-    #         echo "${CI_COMMIT_TAG:-}"
-    #         ;;
     #     travis)
     #         echo "${TRAVIS_TAG:-}"
     #         ;;
-    #     *)
-    #         git tag --points-at
-    #         ;;
-    # esac
-    cd ~-
+        *)
+            local REPO_ROOT="$1"
+            cd "$REPO_ROOT"
+            git tag --points-at
+            cd ~-
+            ;;
+    esac
 }
 
 # Returns the current git branch (might be empty string if on a tag and repo was checked out with --depth 1)
