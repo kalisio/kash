@@ -124,6 +124,7 @@ NVM_VERSION=0.39.7
 NODE16_VERSION=16.20.2
 NODE18_VERSION=18.19.1
 NODE20_VERSION=20.11.1
+NODE22_VERSION=22.3.0
 
 # https://www.mongodb.com/try/download/community
 MONGODB4_VERSION=4.4.28
@@ -293,6 +294,11 @@ install_node18() {
 # Install node20, requires nvm to be installed
 install_node20() {
     bash -i -c "nvm install $NODE20_VERSION"
+}
+
+# Install node22, requires nvm to be installed
+install_node22() {
+    bash -i -c "nvm install $NODE22_VERSION"
 }
 
 # Install mongo4 in ~/.local/bin/mongo4
