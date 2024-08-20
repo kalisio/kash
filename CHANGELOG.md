@@ -9,4 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+  - kubectl bumped to `1.28.13`
+  - helm bumped to `3.14.4`
+  - helmfile bumped to `0.167.1`
   - `build_docs` now takes a fourth parameter, the version of node to use to build the docs
