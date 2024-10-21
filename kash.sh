@@ -250,9 +250,11 @@ install_cc_test_reporter() {
 
 # Sends test coverage to code climate
 # Arg1: code climate identifier for authentication
+# Arg2: prefix to use when using format-coverage (can be empty)
 send_coverage_to_cc() {
     local CC_TEST_REPORTER_ID=$1
-    ~/.local/bin/cc-test-reporter format-coverage -t lcov coverage/lcov.info
+    local CC_PREFIX=${2:-}
+    ~/.local/bin/cc-test-reporter format-coverage -t lcov --add-prefix "$CC_PREFIX" coverage/lcov.info
     ~/.local/bin/cc-test-reporter upload-coverage -r "$CC_TEST_REPORTER_ID"
 }
 
@@ -1266,7 +1268,7 @@ run_app_tests() {
     ##
 
     if [ "$CODE_COVERAGE" = true ]; then
-        send_coverage_to_cc "$CC_TEST_REPORTER_ID"
+        send_coverage_to_cc "$CC_TEST_REPORTER_ID" "api"
     fi
 
     popd

@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - helm bumped to `3.14.4`
   - helmfile bumped to `0.167.1`
   - `build_docs` now takes a fourth parameter, the version of node to use to build the docs
+  - `send_coverage_to_cc` now takes a second parameter, the prefix to add to files in coverage report
 
 ### Fixed
 
