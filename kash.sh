@@ -1260,7 +1260,7 @@ run_app_tests() {
     pushd "$REPO_DIR/api"
 
     use_node "$NODE_VER"
-    yarn test:server
+    yarn test
 
     ## Publish code coverage
     ##
