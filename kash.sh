@@ -1257,6 +1257,8 @@ run_app_tests() {
     ## Run tests
     ##
 
+    pushd "$REPO_DIR/api"
+
     use_node "$NODE_VER"
     yarn test:server
 
@@ -1266,6 +1268,8 @@ run_app_tests() {
     if [ "$CODE_COVERAGE" = true ]; then
         send_coverage_to_cc "$CC_TEST_REPORTER_ID"
     fi
+
+    popd
 }
 
 # Setup the workspace for a lib project.
