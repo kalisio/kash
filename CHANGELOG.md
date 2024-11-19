@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+  - support for mongo 8 (`install_mongo8`)
+
+### Removed
+
+  - support for mongo 4,5,6
+  
 ### Changed
 
   - kubectl bumped to `1.28.13`
