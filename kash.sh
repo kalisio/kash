@@ -127,10 +127,8 @@ NODE20_VERSION=20.11.1
 NODE22_VERSION=22.3.0
 
 # https://www.mongodb.com/try/download/community
-MONGODB4_VERSION=4.4.28
-MONGODB5_VERSION=5.0.24
-MONGODB6_VERSION=6.0.13
-MONGODB7_VERSION=7.0.5
+MONGODB7_VERSION=7.0.15
+MONGODB8_VERSION=8.0.3
 
 # Install yq in ~/.local/bin
 # Arg1: a writable folder where to write downloaded files
@@ -303,96 +301,6 @@ install_node22() {
     bash -i -c "nvm install $NODE22_VERSION"
 }
 
-# Install mongo4 in ~/.local/bin/mongo4
-# Arg1: a writable folder where to write downloaded files
-# NOTE: each mongo version is installed in a separate folder to support multiple versions
-install_mongo4() {
-    local DL_ROOT=$1
-    local DL_PATH="$DL_ROOT/mongo4"
-    mkdir -p "$DL_PATH" && cd "$DL_PATH"
-    case "$OS_ID" in
-        debian)
-            curl -OLsS http://ftp.us.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.1w-0+deb11u1_amd64.deb
-            DEBIAN_FRONTEND=noninteractive && dpkg -i libssl1.1_1.1.1w-0+deb11u1_amd64.deb
-            local MONGODB_SUFFIX=debian10-${MONGODB4_VERSION}
-            ;;
-        ubuntu)
-            # NOTE: this assumes ubuntu 22.04
-            curl -OLss http://launchpadlibrarian.net/715615335/libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
-            DEBIAN_FRONTEND=noninteractive && sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
-            local MONGODB_SUFFIX=ubuntu2004-${MONGODB4_VERSION}
-            ;;
-        *)
-    esac
-
-    curl -OLsS "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB_SUFFIX}.tgz"
-    tar xf "mongodb-linux-x86_64-${MONGODB_SUFFIX}.tgz"
-    mkdir -p ~/.local/bin/mongo4
-    cp -fR "mongodb-linux-x86_64-${MONGODB_SUFFIX}/bin/mongod" ~/.local/bin/mongo4
-    sudo mkdir -p /var/lib/mongo4 && sudo mkdir -p /var/log/mongodb4
-    sudo chmod a+rwx /var/lib/mongo4 && sudo chmod a+rwx /var/log/mongodb4
-    cd ~-
-}
-
-# Install mongo5 in ~/.local/bin/mongo5
-# Arg1: a writable folder where to write downloaded files
-# NOTE: each mongo version is installed in a separate folder to support multiple versions
-install_mongo5() {
-    local DL_ROOT=$1
-    local DL_PATH="$DL_ROOT/mongo5"
-    mkdir -p "$DL_PATH" && cd "$DL_PATH"
-    case "$OS_ID" in
-        debian)
-            curl -OLsS http://ftp.us.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.1w-0+deb11u1_amd64.deb
-            DEBIAN_FRONTEND=noninteractive && dpkg -i libssl1.1_1.1.1w-0+deb11u1_amd64.deb
-            local MONGODB_SUFFIX=debian11-${MONGODB5_VERSION}
-            ;;
-        ubuntu)
-            # NOTE: this assumes ubuntu 22.04
-            curl -OLss http://launchpadlibrarian.net/715615335/libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
-            DEBIAN_FRONTEND=noninteractive && sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
-            local MONGODB_SUFFIX=ubuntu2004-${MONGODB5_VERSION}
-            ;;
-        *)
-    esac
-
-    curl -OLsS "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB_SUFFIX}.tgz"
-    tar xf "mongodb-linux-x86_64-${MONGODB_SUFFIX}.tgz"
-    mkdir -p ~/.local/bin/mongo5
-    cp -fR "mongodb-linux-x86_64-${MONGODB_SUFFIX}/bin/mongod" ~/.local/bin/mongo5
-    sudo mkdir -p /var/lib/mongo5 && sudo mkdir -p /var/log/mongodb5
-    sudo chmod a+rwx /var/lib/mongo5 && sudo chmod a+rwx /var/log/mongodb5
-    cd ~-
-}
-
-# Install mongo6 in ~/.local/bin/mongo6
-# Arg1: a writable folder where to write downloaded files
-# NOTE: each mongo version is installed in a separate folder to support multiple versions
-install_mongo6() {
-    local DL_ROOT=$1
-    local DL_PATH="$DL_ROOT/mongo6"
-    mkdir -p "$DL_PATH" && cd "$DL_PATH"
-    case "$OS_ID" in
-        debian)
-            curl -OLsS http://ftp.us.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.1w-0+deb11u1_amd64.deb
-            DEBIAN_FRONTEND=noninteractive && dpkg -i libssl1.1_1.1.1w-0+deb11u1_amd64.deb
-            local MONGODB_SUFFIX=debian11-${MONGODB6_VERSION}
-            ;;
-        ubuntu)
-            local MONGODB_SUFFIX=ubuntu2204-${MONGODB6_VERSION}
-            ;;
-        *)
-    esac
-
-    curl -OLsS "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB_SUFFIX}.tgz"
-    tar xf "mongodb-linux-x86_64-${MONGODB_SUFFIX}.tgz"
-    mkdir -p ~/.local/bin/mongo6
-    cp -fR "mongodb-linux-x86_64-${MONGODB_SUFFIX}/bin/mongod" ~/.local/bin/mongo6
-    sudo mkdir -p /var/lib/mongo6 && sudo mkdir -p /var/log/mongodb6
-    sudo chmod a+rwx /var/lib/mongo6 && sudo chmod a+rwx /var/log/mongodb6
-    cd ~-
-}
-
 # Install mongo7 in ~/.local/bin/mongo7
 # Arg1: a writable folder where to write downloaded files
 # NOTE: each mongo version is installed in a separate folder to support multiple versions
@@ -402,9 +310,7 @@ install_mongo7() {
     mkdir -p "$DL_PATH" && cd "$DL_PATH"
     case "$OS_ID" in
         debian)
-            curl -OLsS http://ftp.us.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.1w-0+deb11u1_amd64.deb
-            DEBIAN_FRONTEND=noninteractive && dpkg -i libssl1.1_1.1.1w-0+deb11u1_amd64.deb
-            local MONGODB_SUFFIX=debian11-${MONGODB7_VERSION}
+            local MONGODB_SUFFIX=debian12-${MONGODB7_VERSION}
             ;;
         ubuntu)
             local MONGODB_SUFFIX=ubuntu2204-${MONGODB7_VERSION}
@@ -418,6 +324,32 @@ install_mongo7() {
     cp -fR "mongodb-linux-x86_64-${MONGODB_SUFFIX}/bin/mongod" ~/.local/bin/mongo7
     sudo mkdir -p /var/lib/mongo7 && sudo mkdir -p /var/log/mongodb7
     sudo chmod a+rwx /var/lib/mongo7 && sudo chmod a+rwx /var/log/mongodb7
+    cd ~-
+}
+
+# Install mongo8 in ~/.local/bin/mongo8
+# Arg1: a writable folder where to write downloaded files
+# NOTE: each mongo version is installed in a separate folder to support multiple versions
+install_mongo8() {
+    local DL_ROOT=$1
+    local DL_PATH="$DL_ROOT/mongo8"
+    mkdir -p "$DL_PATH" && cd "$DL_PATH"
+    case "$OS_ID" in
+        debian)
+            local MONGODB_SUFFIX=debian12-${MONGODB8_VERSION}
+            ;;
+        ubuntu)
+            local MONGODB_SUFFIX=ubuntu2204-${MONGODB8_VERSION}
+            ;;
+        *)
+    esac
+
+    curl -OLsS "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB_SUFFIX}.tgz"
+    tar xf "mongodb-linux-x86_64-${MONGODB_SUFFIX}.tgz"
+    mkdir -p ~/.local/bin/mongo8
+    cp -fR "mongodb-linux-x86_64-${MONGODB_SUFFIX}/bin/mongod" ~/.local/bin/mongo8
+    sudo mkdir -p /var/lib/mongo8 && sudo mkdir -p /var/log/mongodb8
+    sudo chmod a+rwx /var/lib/mongo8 && sudo chmod a+rwx /var/log/mongodb8
     cd ~-
 }
 

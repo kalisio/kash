@@ -15,7 +15,7 @@ init_github() {
 
     # mongo is not available for alpine hosts
     if [ "$OS_ID" != "alpine" ]; then
-        install_reqs mongo4 mongo5 mongo6 mongo7
+        install_reqs mongo7 mongo8
     fi
 
     install_reqs kubectl helm helmfile k9s
