@@ -18,7 +18,20 @@
 . /etc/os-release
 
 OS_ID=$ID
-OS_VERSION=$VERSION_ID
+OS_VERSION=${VERSION_ID:-}
+
+# VERSION_ID is an optional field, do what we can to deduce when missing
+if [[ "$OS_VERSION" = "" ]]; then
+    case "$OS_ID" in
+        debian)
+            OS_VERSION=$(cat /etc/debian_version)
+            OS_VERSION=${OS_VERSION%%.*}
+            ;;
+        *)
+            OS_VERSION=unknown
+            ;;
+    esac
+fi
 
 echo "Running on ${OS_ID}-${OS_VERSION}"
 

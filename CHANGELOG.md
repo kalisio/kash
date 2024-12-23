@@ -25,4 +25,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+  - do our best to determine `OS_VERSION` when `VERSION_ID` is not in /etc/os-release
   - `run_app_tests` now correctly upload code coverage if asked to
