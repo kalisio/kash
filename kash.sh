@@ -56,11 +56,11 @@ fi
 
 if [ -n "$CI_ID" ]; then
     CI=true
-    echo "Running in CI mode ($CI_ID)..."
+    echo "Running in CI mode ($CI_ID) ..."
 
     # Make sure we have the requirements to run kash functions
     set +e
-    command -v curl >/dev/null 2>&1 && command -v git >/dev/null 2>&1 && command -v sha256sum >/dev/null 2>&1
+    command -v curl >/dev/null 2>&1 && command -v git >/dev/null 2>&1 && command -v sha256sum >/dev/null 2>&1 && command -v unzip >/dev/null 2>&1
     RC=$?
     set -e
 
@@ -68,13 +68,13 @@ if [ -n "$CI_ID" ]; then
         case "$OS_ID" in
             debian | ubuntu)
                 if [ "$(id -u)" -eq 0 ]; then
-                    apt-get update && apt-get --no-install-recommends --yes install sudo curl ca-certificates coreutils git
+                    apt-get update && apt-get --no-install-recommends --yes install sudo curl ca-certificates coreutils git unzip
                 else
-                    sudo apt-get update && sudo apt-get --no-install-recommends --yes install curl ca-certificates coreutils git
+                    sudo apt-get update && sudo apt-get --no-install-recommends --yes install curl ca-certificates coreutils git unzip
                 fi
                 ;;
             alpine)
-                apk update && apk add curl ca-certificates coreutils git
+                apk update && apk add curl ca-certificates coreutils git unzip
                 ;;
             *)
                 ;;
@@ -103,6 +103,12 @@ fi
 # If nvm is present, make it available to script
 if [ -d "$HOME/.nvm" ]; then
     . "$HOME/.nvm/nvm.sh"
+fi
+
+# If sonar-scanner-cli is present, add it to PATH
+# See install_sonar_scanner_cli
+if [ -d "$HOME/.local/sonar-scanner" ]; then
+    export PATH=$PATH:$HOME/.local/sonar-scanner/bin
 fi
 
 # Define a TMP_DIR to operate with temp files
@@ -142,6 +148,9 @@ NODE22_VERSION=22.3.0
 # https://www.mongodb.com/try/download/community
 MONGODB7_VERSION=7.0.15
 MONGODB8_VERSION=8.0.3
+
+# https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner/
+SONAR_SCANNER_CLI_VERSION=6.2.1.4610
 
 # Install yq in ~/.local/bin
 # Arg1: a writable folder where to write downloaded files
@@ -363,6 +372,22 @@ install_mongo8() {
     cp -fR "mongodb-linux-x86_64-${MONGODB_SUFFIX}/bin/mongod" ~/.local/bin/mongo8
     sudo mkdir -p /var/lib/mongo8 && sudo mkdir -p /var/log/mongodb8
     sudo chmod a+rwx /var/lib/mongo8 && sudo chmod a+rwx /var/log/mongodb8
+    cd ~-
+}
+
+# Install sonar-scanner in ~/.local/sonar-scanner-cli
+# Arg1: a writable folder where to write downloaded files
+install_sonar_scanner_cli() {
+    local DL_ROOT=$1
+    local DL_PATH="$DL_ROOT/sonarscannercli"
+    if [ ! -d "$DL_PATH" ]; then
+        mkdir -p "$DL_PATH" && cd "$DL_PATH"
+        curl -OLsS https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_CLI_VERSION}-linux-x64.zip
+        unzip sonar-scanner-cli-${SONAR_SCANNER_CLI_VERSION}-linux-x64.zip
+        cd ~-
+    fi
+    cd "$DL_PATH"
+    mv sonar-scanner-${SONAR_SCANNER_CLI_VERSION}-linux-x64 ~/.local/sonar-scanner
     cd ~-
 }
 

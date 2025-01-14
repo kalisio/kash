@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   - support for mongo 8 (`install_mongo8`)
   - added `get_flavor_from_git_ref` `get_version_from_git_ref` `get_custom_from_git_ref` helpers to parse git ref names (tag or branch names).
+  - added `install_sona_scanner_cli` to install SonarQube scanner cli tool
 
 ### Removed
 

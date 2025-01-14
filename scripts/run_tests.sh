@@ -11,7 +11,7 @@ ROOT_DIR=$(dirname "$THIS_DIR")
 ### Github Actions
 
 init_github() {
-    install_reqs yq age sops nvm node16 node18 node20 cc_test_reporter
+    install_reqs yq age sops nvm node16 node18 node20 cc_test_reporter sonar_scanner_cli
 
     # mongo is not available for alpine hosts
     if [ "$OS_ID" != "alpine" ]; then
