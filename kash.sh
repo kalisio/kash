@@ -675,7 +675,7 @@ deploy_gh_pages() {
 ### Log
 ###
 
-KASH_TXT_B="\033["
+KASH_TXT_B="\e["
 KASH_TXT_E="m"
 KASH_TXT_BOLD="${KASH_TXT_B}1${KASH_TXT_E}"
 KASH_TXT_RESET="${KASH_TXT_B}0${KASH_TXT_E}"
@@ -700,7 +700,7 @@ begin_group() {
             echo "travis_fold:start:$TITLE"
         fi
     else
-        echo "${KASH_TXT_BOLD}%< --- $TITLE ------${KASH_TXT_RESET}"
+        echo -e "${KASH_TXT_BOLD}%< --- $TITLE ------${KASH_TXT_RESET}"
     fi
 }
 
@@ -720,7 +720,7 @@ end_group() {
             echo "travis_fold:end:$TITLE"
         fi
     else
-        echo "${KASH_TXT_BOLD}------ $TITLE --- >%${KASH_TXT_RESET}"
+        echo -e "${KASH_TXT_BOLD}------ $TITLE --- >%${KASH_TXT_RESET}"
     fi
 }
 
