@@ -675,7 +675,7 @@ deploy_gh_pages() {
 ### Log
 ###
 
-KASH_TXT_B="\e["
+KASH_TXT_B="\033["
 KASH_TXT_E="m"
 KASH_TXT_BOLD="${KASH_TXT_B}1${KASH_TXT_E}"
 KASH_TXT_RESET="${KASH_TXT_B}0${KASH_TXT_E}"
