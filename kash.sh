@@ -700,7 +700,7 @@ begin_group() {
             echo "travis_fold:start:$TITLE"
         fi
     else
-        echo "%< --- $TITLE ------"
+        echo "${KASH_TXT_BOLD}%< --- $TITLE ------${KASK_TXT_RESET}"
     fi
 }
 
@@ -720,7 +720,7 @@ end_group() {
             echo "travis_fold:end:$TITLE"
         fi
     else
-        echo "------ $TITLE --- >%"
+        echo "${KASH_TXT_BOLD}------ $TITLE --- >%${KASH_TXT_RESET}"
     fi
 }
 
@@ -904,28 +904,82 @@ load_value_files() {
 ### Kalisio
 ###
 
+# Returns the kalisio flavor based on the git ref (tag or branch name).
+# Known flavors are 'dev', 'test' and 'prod'.
+# Expected args:
+# 1. the git ref name
+get_flavor_from_git_ref() {
+    local GIT_REF=$1
+
+    case "$GIT_REF" in
+        # Will match anything beginning with 'prod-'
+        prod-*)
+            printf "prod"
+            ;;
+        # Will match single 'test' or anything beginning with 'test-'
+        test | test-*)
+            printf "test"
+            ;;
+        # Anything else is 'dev' flavor
+        *)
+            printf "dev"
+            ;;
+    esac
+}
+
+# Returns the kalisio version based on the git ref (tag or branch name).
+# Version may be MAJOR.MINOR (eg. with 'test' flavors) or MAJOR.MINOR.PATCH (eg. with 'prod' flavors)
+# Expected args:
+# 1. the git ref name
+get_version_from_git_ref() {
+    local GIT_REF=$1
+
+    local VERSION_REGEX="-v([0-9]+\.[0-9]+(\.[0-9]+)?)"
+    if [[ "$GIT_REF" =~ $VERSION_REGEX ]]; then
+        printf "%s" "${BASH_REMATCH[1]}"
+    fi
+}
+
+# Returns the kalisio custom field based on the git ref (tag or branch name).
+# Expected args:
+# 1. the git ref name
+get_custom_from_git_ref() {
+    local GIT_REF=$1
+
+    local CUSTOM_REGEX="(^|-)([a-zA-Z0-9]+)$"
+    if [[ "$GIT_REF" =~ $CUSTOM_REGEX ]]; then
+        if [[ "${BASH_REMATCH[1]}" == "" ]]; then
+            # If first capture group is empty => that's probably a 'dev' flavor.
+            # The branch name = the custom field (except for master and main)
+            #
+            case "${BASH_REMATCH[2]}" in
+                # Also exclude 'test' as it's a valid branch name for test flavor
+                master | main | test)
+                    ;;
+                *)
+                    printf "%s" "${BASH_REMATCH[2]}"
+                    ;;
+            esac
+        else
+            # Otherwise, that's probably a test or prod flavor,
+            printf "%s" "${BASH_REMATCH[2]}"
+        fi
+    fi
+}
+
 # Returns the kalisio flavor (prod, test, dev) according to current branch/tag name
 # Expected args:
 # 1. the repository root folder
 get_flavor_from_git() {
     local REPO_DIR=$1
-    # Matches 'test' but also 'test-v1.2'
-    local TEST_FLAVOR_REGEX="^test(-v[0-9]+\.[0-9]+)?$"
-    # Only matches 'prod-v1.2.3'
-    local PROD_FLAVOR_REGEX="^prod-v[0-9]+\.[0-9]+\.[0-9]+$"
 
     local GIT_TAG
     GIT_TAG=$(get_git_tag "$REPO_DIR")
     local GIT_BRANCH
     GIT_BRANCH=$(get_git_branch "$REPO_DIR")
+    local GIT_REF="${GIT_TAG:-$GIT_BRANCH}"
 
-    if [[ "$GIT_TAG" =~ $PROD_FLAVOR_REGEX ]]; then
-        printf "prod"
-    elif [[ "$GIT_BRANCH" =~ $TEST_FLAVOR_REGEX ]]; then
-        printf "test"
-    else
-        printf "dev"
-    fi
+    get_flavor_from_git_ref "$GIT_REF"
 }
 
 # Returns the git ref that produced the given container tag.
@@ -1048,26 +1102,20 @@ setup_app_workspace() {
         GIT_REF="$7"
     fi
 
-    if [ -z "$KLI_BASE" ]; then
-        KLI_BASE="$DEVELOPMENT_DIR/$APP_NAME"
-    else
-        KLI_BASE="$DEVELOPMENT_DIR/$KLI_BASE/$APP_NAME"
-    fi
+    local APP_FLAVOR
+    APP_FLAVOR=$(get_flavor_from_git_ref "$GIT_REF")
+    local APP_VERSION
+    APP_VERSION=$(get_version_from_git_ref "$GIT_REF")
+    local APP_CUSTOM
+    APP_CUSTOM=$(get_custom_from_git_ref "$GIT_REF")
 
     # determine associated kli file
-    local KLI_FILE
-    local PROD_REGEX="^prod-v([0-9]+\.[0-9]+\.[0-9]+)$"
-    local TEST_REGEX="^test-v([0-9]+\.[0-9]+)$"
-    if [[ "$GIT_REF" =~ $PROD_REGEX ]]; then
-        KLI_FILE="$KLI_BASE/prod/$APP_NAME-${BASH_REMATCH[1]}.js"
-    elif [[ "$GIT_REF" =~ $TEST_REGEX ]]; then
-        KLI_FILE="$KLI_BASE/test/$APP_NAME-${BASH_REMATCH[1]}.js"
-    else
-        KLI_FILE="$KLI_BASE/dev/$APP_NAME-$GIT_REF.js"
-        if [ ! -f "$KLI_FILE" ]; then
-            KLI_FILE="$KLI_BASE/dev/$APP_NAME.js"
-        fi
-    fi
+    local KLI_FILE="$DEVELOPMENT_DIR"
+    [[ "$KLI_BASE" != "" ]] && KLI_FILE="$KLI_FILE/$KLI_BASE"
+    KLI_FILE="$KLI_FILE/$APP_NAME/$APP_FLAVOR/$APP_NAME"
+    [[ "$APP_VERSION" != "" ]] && KLI_FILE="$KLI_FILE-$APP_VERSION"
+    [[ "$APP_CUSTOM" != "" ]] && KLI_FILE="$KLI_FILE-$APP_CUSTOM"
+    KLI_FILE="$KLI_FILE.js"
 
     # run kli !
     if [ "$KLI_RUN" = kli ] || [ "$KLI_RUN" = klifull ]; then
@@ -1096,34 +1144,29 @@ init_app_infos() {
     local APP_VERSION
     APP_VERSION=$(yq --output-format=yaml '.version' "$REPO_ROOT/package.json")
 
-    KLI_BASE="$KLI_BASE/$APP_NAME"
-
     local GIT_TAG
     GIT_TAG=$(get_git_tag "$REPO_ROOT")
     local GIT_BRANCH
     GIT_BRANCH=$(get_git_branch "$REPO_ROOT")
-
     local GIT_REF="${GIT_TAG:-$GIT_BRANCH}"
 
     local APP_FLAVOR
-    local KLI_FILE
-    local PROD_REGEX="^prod-v([0-9]+\.[0-9]+\.[0-9]+)$"
-    local TEST_REGEX="^test-v([0-9]+\.[0-9]+)$"
-    if [[ "$GIT_REF" =~ $PROD_REGEX ]]; then
-        APP_FLAVOR="prod"
-        KLI_FILE="$KLI_BASE/$APP_FLAVOR/$APP_NAME-${BASH_REMATCH[1]}.js"
-    elif [[ "$GIT_REF" =~ $TEST_REGEX ]]; then
-        APP_FLAVOR="test"
-        KLI_FILE="$KLI_BASE/$APP_FLAVOR/$APP_NAME-${BASH_REMATCH[1]}.js"
-    else
-        APP_FLAVOR="dev"
-        KLI_FILE="$KLI_BASE/$APP_FLAVOR/$APP_NAME-$GIT_REF.js"
-        if [ ! -f "$KLI_FILE" ]; then
-            KLI_FILE="$KLI_BASE/$APP_FLAVOR/$APP_NAME.js"
-        fi
-    fi
+    APP_FLAVOR=$(get_flavor_from_git_ref "$GIT_REF")
+    local APP_CUSTOM
+    APP_CUSTOM=$(get_custom_from_git_ref "$GIT_REF")
 
-    APP_INFOS=("$APP_NAME" "$APP_VERSION" "$APP_FLAVOR" "$GIT_TAG" "$GIT_BRANCH" "$KLI_FILE")
+    local KLI_FILE="$KLI_BASE/$APP_NAME/$APP_FLAVOR/$APP_NAME"
+    case "$APP_FLAVOR" in
+        prod | test)
+            KLI_FILE="$KLI_FILE-$APP_VERSION"
+            ;;
+        *)
+            ;;
+    esac
+    [[ "$APP_CUSTOM" != "" ]] && KLI_FILE="$KLI_FILE-$APP_CUSTOM"
+    KLI_FILE="$KLI_FILE.js"
+
+    APP_INFOS=("$APP_NAME" "$APP_VERSION" "$APP_FLAVOR" "$APP_CUSTOM" "$GIT_TAG" "$GIT_BRANCH" "$KLI_FILE")
 }
 
 # Extract app name from app infos
@@ -1144,22 +1187,28 @@ get_app_flavor() {
     echo "${APP_INFOS[2]}"
 }
 
+# Extract app flavor from app infos
+# NOTE: requires a call to init_app_infos first
+get_app_custom() {
+    echo "${APP_INFOS[3]}"
+}
+
 # Extract app tag from app infos
 # NOTE: requires a call to init_app_infos first
 get_app_tag() {
-    echo "${APP_INFOS[3]}"
+    echo "${APP_INFOS[4]}"
 }
 
 # Extract app branch from app infos
 # NOTE: requires a call to init_app_infos first
 get_app_branch() {
-    echo "${APP_INFOS[4]}"
+    echo "${APP_INFOS[5]}"
 }
 
 # Extract app kli file from app infos
 # NOTE: requires a call to init_app_infos first
 get_app_kli_file() {
-    echo "${APP_INFOS[5]}"
+    echo "${APP_INFOS[6]}"
 }
 
 # Run backend tests for the given app.

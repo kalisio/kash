@@ -91,6 +91,33 @@ git_shallow_clone https://github.com/kalisio/kApp.git "$TMP_DIR/kApp.v1.3.0" pro
 
 ## Kalisio helpers
 
+[[ "$(get_flavor_from_git_ref "master")" != "dev" ]] && exit 1
+[[ "$(get_flavor_from_git_ref "main")" != "dev" ]] && exit 1
+[[ "$(get_flavor_from_git_ref "foo")" != "dev" ]] && exit 1
+[[ "$(get_flavor_from_git_ref "test")" != "test" ]] && exit 1
+[[ "$(get_flavor_from_git_ref "test-v4.3")" != "test" ]] && exit 1
+[[ "$(get_flavor_from_git_ref "test-v4.3-blabla")" != "test" ]] && exit 1
+[[ "$(get_flavor_from_git_ref "prod-v4.5.3")" != "prod" ]] && exit 1
+[[ "$(get_flavor_from_git_ref "prod-v4.5.3-custom")" != "prod" ]] && exit 1
+
+[[ "$(get_version_from_git_ref "master")" != "" ]] && exit 1
+[[ "$(get_version_from_git_ref "main")" != "" ]] && exit 1
+[[ "$(get_version_from_git_ref "foo")" != "" ]] && exit 1
+[[ "$(get_version_from_git_ref "test")" != "" ]] && exit 1
+[[ "$(get_version_from_git_ref "test-v4.3")" != "4.3" ]] && exit 1
+[[ "$(get_version_from_git_ref "test-v4.3-blabla")" != "4.3" ]] && exit 1
+[[ "$(get_version_from_git_ref "prod-v4.5.3")" != "4.5.3" ]] && exit 1
+[[ "$(get_version_from_git_ref "prod-v4.5.3-custom")" != "4.5.3" ]] && exit 1
+
+[[ "$(get_custom_from_git_ref "master")" != "" ]] && exit 1
+[[ "$(get_custom_from_git_ref "main")" != "" ]] && exit 1
+[[ "$(get_custom_from_git_ref "foo")" != "foo" ]] && exit 1
+[[ "$(get_custom_from_git_ref "test")" != "" ]] && exit 1
+[[ "$(get_custom_from_git_ref "test-v4.3")" != "" ]] && exit 1
+[[ "$(get_custom_from_git_ref "test-v4.3-blabla")" != "blabla" ]] && exit 1
+[[ "$(get_custom_from_git_ref "prod-v4.5.3")" != "" ]] && exit 1
+[[ "$(get_custom_from_git_ref "prod-v4.5.3-custom")" != "custom" ]] && exit 1
+
 # Setup a fake workspace with additional dependencies
 mkdir -p "$TMP_DIR/fake"
 setup_workspace "$TMP_DIR/fake" "https://github.com/kalisio/kApp.git" \
