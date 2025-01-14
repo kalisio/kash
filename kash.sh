@@ -700,7 +700,7 @@ begin_group() {
             echo "travis_fold:start:$TITLE"
         fi
     else
-        echo "${KASH_TXT_BOLD}%< --- $TITLE ------${KASK_TXT_RESET}"
+        echo "${KASH_TXT_BOLD}%< --- $TITLE ------${KASh_TXT_RESET}"
     fi
 }
 
