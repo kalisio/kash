@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - helmfile bumped to `0.167.1`
   - `build_docs` now takes a fourth parameter, the version of node to use to build the docs
   - `send_coverage_to_cc` now takes a second parameter, the prefix to add to files in coverage report
+  - `run_kli` now uses the `--fail-on-error` kli flag
 
 ### Fixed
 
