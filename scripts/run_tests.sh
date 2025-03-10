@@ -51,11 +51,23 @@ curl -OLsS "https://raw.githubusercontent.com/kalisio/krawler/master/package.jso
 [ "$(get_json_value "$TMP_DIR/utils/package.json" 'name')" != "@kalisio/krawler" ] && exit 1
 cd ~-
 
+[ "$(get_semver_major "1" )" != "1" ] && exit 1
+[ "$(get_semver_major "1.5" )" != "1" ] && exit 1
+[ "$(get_semver_major "1.5.90" )" != "1" ] && exit 1
+[ "$(get_semver_major "abcd" )" != "" ] && exit 1
+
+[ "$(get_semver_minor "10.4" )" != "4" ] && exit 1
+[ "$(get_semver_minor "10.5.0" )" != "5" ] && exit 1
+[ "$(get_semver_minor "abcd" )" != "" ] && exit 1
+
+[ "$(get_semver_patch "10.4.59" )" != "59" ] && exit 1
+[ "$(get_semver_patch "abcd" )" != "" ] && exit 1
+
 ## Git helpers
 
 case "$CI_ID" in
     github)
-        [ "$(get_git_branch "$ROOT_DIR" )" != "$GITHUB_REF_NAME" ] && exit 1
+        [ "''$(get_git_branch "$ROOT_DIR" )" != "$GITHUB_REF_NAME" ] && exit 1
         ;;
     gitlab)
         [ "$(get_git_branch "$ROOT_DIR" )" != "$CI_COMMIT_REF_NAME" ] && exit 1

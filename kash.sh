@@ -517,6 +517,39 @@ get_json_value() {
     yq --output-format=yaml ".$JSON_FIELD" "$JSON_SRC"
 }
 
+# Extract version major from a version string.
+# Expected args:
+# 1. the version string
+get_semver_major() {
+    local VERSION="$1"
+    local VERSION_REGEX="^([0-9]+)(\.[0-9]+)?(\.[0-9]+)?$"
+    if [[ "$VERSION" =~ $VERSION_REGEX ]]; then
+        printf "%s" "${BASH_REMATCH[1]}"
+    fi
+}
+
+# Extract version minor from a version string.
+# Expected args:
+# 1. the version string
+get_semver_minor() {
+    local VERSION="$1"
+    local VERSION_REGEX="^[0-9]+\.([0-9]+)(\.[0-9]+)?$"
+    if [[ "$VERSION" =~ $VERSION_REGEX ]]; then
+        printf "%s" "${BASH_REMATCH[1]}"
+    fi
+}
+
+# Extract version minor from a version string.
+# Expected args:
+# 1. the version string
+get_semver_patch() {
+    local VERSION="$1"
+    local VERSION_REGEX="^[0-9]+\.[0-9]+\.([0-9]+)$"
+    if [[ "$VERSION" =~ $VERSION_REGEX ]]; then
+        printf "%s" "${BASH_REMATCH[1]}"
+    fi
+}
+
 ### Git
 ###
 
@@ -1112,6 +1145,11 @@ setup_app_workspace() {
     local DEVELOPMENT_DIR="$WORKSPACE_DIR/development"
     git_shallow_clone "$DEVELOPMENT_REPO_URL" "$DEVELOPMENT_DIR"
 
+    # NOTE: we don't reuse init_app_infos here since init_app_infos
+    # fetch app version from package.json (it requires a cloned repo)
+    # Here we might be setting up workspace for a specific
+    # branch / tag that's not currently checked out.
+
     # fetch app name and ref (tag or branch) required
     local APP_NAME
     APP_NAME=$(yq --output-format=yaml '.name' "$REPO_DIR/package.json")
@@ -1168,6 +1206,10 @@ init_app_infos() {
     APP_NAME=$(yq --output-format=yaml '.name' "$REPO_ROOT/package.json")
     local APP_VERSION
     APP_VERSION=$(yq --output-format=yaml '.version' "$REPO_ROOT/package.json")
+    local APP_VERSION_MAJOR
+    local APP_VERSION_MINOR
+    APP_VERSION_MAJOR=$(get_semver_major "$APP_VERSION")
+    APP_VERSION_MINOR=$(get_semver_minor "$APP_VERSION")
 
     local GIT_TAG
     GIT_TAG=$(get_git_tag "$REPO_ROOT")
@@ -1182,8 +1224,11 @@ init_app_infos() {
 
     local KLI_FILE="$KLI_BASE/$APP_NAME/$APP_FLAVOR/$APP_NAME"
     case "$APP_FLAVOR" in
-        prod | test)
+        prod)
             KLI_FILE="$KLI_FILE-$APP_VERSION"
+            ;;
+        test)
+            KLI_FILE="$KLI_FILE-$APP_VERSION_MAJOR.$APP_VERSION_MINOR"
             ;;
         *)
             ;;
