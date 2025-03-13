@@ -1629,55 +1629,47 @@ build_docs () {
 # 2: true to publish result on harbor
 build_e2e_tests () {
     local ROOT_DIR="$1"
-    local PUBLISH="$2"
-
-    ## Init workspace
-    ##
+    local SUBDOMAIN="$2"
+    local PUBLISH="$3"
+    local REGISTRY_URL="$4"
+    local REGISTRY_USERNAME="$5"
+    local REGISTRY_PASSWORD_FILE="$6"
+    local IMAGE_NAME="$7"
+    local IMAGE_TAG="$8"
 
     local WORKSPACE_DIR
     WORKSPACE_DIR="$(dirname "$ROOT_DIR")"
-    init_app_infos "$ROOT_DIR" "$WORKSPACE_DIR/development/workspaces/apps"
+    # NOTE: KLI_BASE parameter is irrelevant, we don't use kli so just leave it empty
+    init_app_infos "$ROOT_DIR" ""
 
     local APP
     APP=$(get_app_name)
-    local VERSION
-    VERSION=$(get_app_version)
+    # local VERSION
+    # VERSION=$(get_app_version)
     local FLAVOR
     FLAVOR=$(get_app_flavor)
 
-    echo "About to build ${APP} v${VERSION}-$FLAVOR ..."
+    begin_group "Building $IMAGE_NAME:$IMAGE_TAG ..."
 
-    load_env_files "$WORKSPACE_DIR/development/common/kalisio_harbor.enc.env"
-    load_value_files "$WORKSPACE_DIR/development/common/KALISIO_HARBOR_PASSWORD.enc.value"
-
-    ## Build container
-    ##
-
-    local IMAGE_NAME="$KALISIO_HARBOR_URL/kalisio/$APP-e2e-tests"
-    local IMAGE_TAG="$VERSION-$FLAVOR"
-
-    begin_group "Building container ..."
-
-    docker login --username "$KALISIO_HARBOR_USERNAME" --password-stdin "$KALISIO_HARBOR_URL" < "$KALISIO_HARBOR_PASSWORD"
+    docker login --username "$REGISTRY_USERNAME" --password-stdin "$REGISTRY_URL" < "$REGISTRY_PASSWORD_FILE"
     # DOCKER_BUILDKIT is here to be able to use Dockerfile specific dockerginore (e2e-tests.Dockerfile.dockerignore)
     DOCKER_BUILDKIT=1 docker build \
         --build-arg APP="$APP" \
         --build-arg NODE_APP_INSTANCE="$FLAVOR" \
-        --build-arg SUBDOMAIN="$FLAVOR.kalisio.xyz" \
-        --build-arg HEADLESS=true \
+        --build-arg SUBDOMAIN="$SUBDOMAIN" \
         -f "$ROOT_DIR/e2e-tests.Dockerfile" \
-        -t "$IMAGE_NAME:$IMAGE_TAG" \
+        -t "$REGISTRY_URL/$IMAGE_NAME:$IMAGE_TAG" \
         "$WORKSPACE_DIR"
-    docker tag "$IMAGE_NAME:$IMAGE_TAG" "$IMAGE_NAME:$FLAVOR"
+    docker tag "$REGISTRY_URL/$IMAGE_NAME:$IMAGE_TAG" "$REGISTRY_URL/$IMAGE_NAME:$FLAVOR"
 
     if [ "$PUBLISH" = true ]; then
-        docker push "$IMAGE_NAME:$IMAGE_TAG"
-        docker push "$IMAGE_NAME:$FLAVOR"
+        docker push "$REGISTRY_URL/$IMAGE_NAME:$IMAGE_TAG"
+        docker push "$REGISTRY_URL/$IMAGE_NAME:$FLAVOR"
     fi
 
-    docker logout "$KALISIO_HARBOR_URL"
+    docker logout "$REGISTRY_URL"
 
-    end_group "Building container ..."
+    end_group "Building $IMAGE_NAME:$IMAGE_TAG ..."
 }
 
 # Run e2e tests
