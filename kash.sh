@@ -550,6 +550,28 @@ get_semver_patch() {
     fi
 }
 
+# Generates the markdown anchor corresponding to the given title taking
+# markdown flavors into account.
+# Expected args:
+# 1. the section title
+# 2. the markdown flavor (github, gitlab, ...)
+normalize_markdown_anchor() {
+    local SECTION_TITLE="$1"
+    local MARKDOWN_FLAVOR="$2"
+
+    case "$MARKDOWN_FLAVOR" in
+        github)
+            echo "$SECTION_TITLE" | tr '/' '-'
+            ;;
+        gitlab)
+            echo "$SECTION_TITLE" | tr -d '/'
+            ;;
+        *)
+            echo "$SECTION_TITLE"
+            ;;
+    esac
+}
+
 ### Git
 ###
 
@@ -1623,10 +1645,19 @@ build_docs () {
     end_group "Building docs for $REPOSITORY ..."
 }
 
-# Build e2e tests
+### e2e tests
+###
+
+# Build the e2e tests container
 # Expected arguments
-# 1. Root directory
-# 2: true to publish result on harbor
+# 1. the app root directory
+# 2. the subdomain where the app is deployed
+# 3: true to publish built container on a registry
+# 4. the registry url, eg. "docker.io"
+# 5. the username to login the registry
+# 6. a file where the password is stored in cleartext
+# 7. the name to give to the built container image
+# 8. the tag to give to the built container image
 build_e2e_tests () {
     local ROOT_DIR="$1"
     local SUBDOMAIN="$2"
@@ -1649,7 +1680,7 @@ build_e2e_tests () {
     local FLAVOR
     FLAVOR=$(get_app_flavor)
 
-    begin_group "Building $IMAGE_NAME:$IMAGE_TAG ..."
+    begin_group "Building $REGISTRY_URL/$IMAGE_NAME:$IMAGE_TAG ..."
 
     docker login --username "$REGISTRY_USERNAME" --password-stdin "$REGISTRY_URL" < "$REGISTRY_PASSWORD_FILE"
     # DOCKER_BUILDKIT is here to be able to use Dockerfile specific dockerginore (e2e-tests.Dockerfile.dockerignore)
@@ -1669,53 +1700,244 @@ build_e2e_tests () {
 
     docker logout "$REGISTRY_URL"
 
-    end_group "Building $IMAGE_NAME:$IMAGE_TAG ..."
+    end_group "Building $REGISTRY_URL/$IMAGE_NAME:$IMAGE_TAG ..."
 }
 
 # Run e2e tests
-# Specific error handling: set -uo pipefail to bypass errors
 # Expected arguments
-# 1. Root directory
+# 1. the app root directory
 # 2: the app name
-# 3: the slack webhook apps
 run_e2e_tests () {
     local ROOT_DIR="$1"
     local APP="$2"
-    local SLACK_WEBHOOK_APPS="$3"
-
-    ## Run tests & redirect output to a log file
-    ##
+    local TESTS_RESULTS="$ROOT_DIR/test/run/chrome"
 
     # Chrome
-    mkdir -p "$ROOT_DIR/test/run/chrome"
-    yarn test:client > "$ROOT_DIR/test/run/chrome/chrome_logs.txt" 2>&1
-    local RET_CODE=$?
+    mkdir -p "$TESTS_RESULTS"
+    yarn test:client 2>&1 | tee "$TESTS_RESULTS/chrome_logs.txt"
 
     # Firefox
     # PUPPETEER_PRODUCT=firefox yarn add puppeteer
     # yarn link "@kalisio/kdk" --link-folder /opt/kalisio/yarn-links
     # export BROWSER="firefox"bucket
     # mkdir -p "$ROOT_DIR/test/run/firefox"
-    # yarn test:client  > "$ROOT_DIR/test/run/chrome/firefox_logs.txt" 2>&1
+    return $? # return the exit code of the tests
+}
 
-    ## Upload logs & screenshots to S3
-    ##
+# Upload e2e tests artefacts to some s3 storage.
+# Expected args:
+# 1. the app root dir
+# 2. the app name
+# 3. the s3 bucket where to upload artefacts (with a rclone remote, like ovh:e2e-test/blabla)
+# 4. the rclone.conf file to use to upload artefacts
+# 5. the file where the upload report will be written (json)
+upload_e2e_tests_artefacts() {
+    local ROOT_DIR="$1"
+    local APP="$2"
+    local S3_BUCKET="$3"
+    local RCLONE_CONF="$4"
+    local UPLOAD_REPORT_FILE="$5"
 
-    local CURRENT_DATE
-    CURRENT_DATE=$(date +"%d-%m-%Y")
-    local CHROME_LOGS_LINK=""
-    local SCREEN_LINK=""
+    local TIMESTAMP
+    TIMESTAMP="$(date +"%d-%m-%Y")"
+    local TESTS_RESULTS_DIR="$ROOT_DIR/test/run/chrome"
+    local WORK_DIR="$TMP_DIR/artefacts/$APP/$TIMESTAMP/e2e"
+    local REMOTE_DIR="$S3_BUCKET/$APP/$TIMESTAMP/e2e"
 
-    zip -r "$TMP_DIR/screenshots.zip" "$ROOT_DIR/test/run"
+    mkdir -p "$WORK_DIR"
 
-    rclone copy "$ROOT_DIR/test/run/chrome/chrome_logs.txt" "ovh-s3:/dev/e2e-tests/$APP/$CURRENT_DATE"
-    CHROME_LOGS_LINK=$(rclone link "ovh-s3:/dev/e2e-tests/$APP/$CURRENT_DATE/chrome_logs.txt")
+    # zip the whole tests results folder
+    local ZIP_FILE="$WORK_DIR/e2e-artefacts.zip"
+    cd "$TESTS_RESULTS_DIR"
+    zip -r "$ZIP_FILE" .
+    cd ~-
 
-    rclone copy "$TMP_DIR/screenshots.zip" "ovh-s3:/dev/e2e-tests/$APP/$CURRENT_DATE"
-    SCREEN_LINK=$(rclone link "ovh-s3:/dev/e2e-tests/$APP/$CURRENT_DATE/screenshots.zip")
+    # keep log file as is
+    cp "$TESTS_RESULTS_DIR/logs.txt" "$WORK_DIR/logs.txt"
 
-    ## Report outcome to slack
-    ##
+    # and keep captures and diffs for failed tests
+    local FAILED_TESTS=()
+    readarray -d '' DIFF_FILES < <(find "$TESTS_RESULTS_DIR" -type f -name 'diff.*.png' -print0)
+    for DIFF_FILE in "${DIFF_FILES[@]}"; do
+        local BASE_DIFF_FILE
+        BASE_DIFF_FILE="$(basename "$DIFF_FILE")"
+        local BASE_CAPTURE_FILE="${BASE_DIFF_FILE#diff.*}"
+        local CAPTURE_FILE
+        CAPTURE_FILE="$(dirname "$DIFF_FILE")/$BASE_CAPTURE_FILE"
 
-    slack_e2e_report "$APP" "$RET_CODE" "$SLACK_WEBHOOK_APPS" "$CHROME_LOGS_LINK" "$SCREEN_LINK"
+        local TEST_DIR
+        TEST_DIR="$(realpath -s --relative-to="$TESTS_RESULTS_DIR" "$DIFF_FILE")"
+        TEST_DIR="$(dirname "$TEST_DIR")"
+        TEST_DIR="$(dirname "$TEST_DIR")"
+
+        local TEST_NAME
+        TEST_NAME="$TEST_DIR/${BASE_CAPTURE_FILE%.*}"
+
+        FAILED_TESTS+=("$TEST_NAME")
+
+        mkdir -p "$WORK_DIR/$TEST_DIR"
+        cp "$DIFF_FILE" "$WORK_DIR/$TEST_DIR"
+        cp "$CAPTURE_FILE" "$WORK_DIR/$TEST_DIR"
+    done
+
+    rclone --config "$RCLONE_CONF" copy "$TMP_DIR/artefacts" "$S3_BUCKET"
+
+    rm -fR "$WORK_DIR"
+
+    # now generate public http links
+    local ARTEFACTS_LINK
+    ARTEFACTS_LINK="$(rclone --config "$RCLONE_CONF" link "$REMOTE_DIR/e2e-artefacts.zip")"
+    local LOGS_LINK
+    LOGS_LINK="$(rclone --config "$RCLONE_CONF" link "$REMOTE_DIR/logs.txt")"
+
+    printf '{ "app": "%s", "timestamp": "%s", "artefacts": "%s", "logs": "%s", "num_failed": "%d", "failed": [' "$APP" "$TIMESTAMP" "$ARTEFACTS_LINK" "$LOGS_LINK" "${#FAILED_TESTS[@]}" > "$UPLOAD_REPORT_FILE"
+
+    local COMMA=""
+    for TEST_NAME in "${FAILED_TESTS[@]}"; do
+        local CAPTURE_LINK
+        CAPTURE_LINK="$(rclone --config "$RCLONE_CONF" link "$REMOTE_DIR/$TEST_NAME.png")"
+        local DIFF_FILE
+        DIFF_FILE="$(dirname "$TEST_NAME")/diff.$(basename "$TEST_NAME").png"
+        local DIFF_LINK
+        DIFF_LINK="$(rclone --config "$RCLONE_CONF" link "$REMOTE_DIR/$DIFF_FILE")"
+        printf '%s { "name": "%s", "capture": "%s", "diff": "%s" }' "$COMMA" "$TEST_NAME" "$CAPTURE_LINK" "$DIFF_LINK" >> "$UPLOAD_REPORT_FILE"
+        COMMA=","
+    done
+
+    printf " ] }" >> "$UPLOAD_REPORT_FILE"
+}
+
+# Generates a markdown report file from the upload report file
+# generated by the upload_e2e_tests_artefacts function.
+# Expected args:
+# 1. the same upload report file used in upload_e2e_tests_artefacts
+# 2. the file where to write the markdown report
+# 3. the flavor to use for the markdown (see normalize_markdown_anchor)
+generate_e2e_tests_markdown_report() {
+    local UPLOAD_REPORT_FILE="$1"
+    local MD_REPORT_FILE="$2"
+    local MD_FLAVOR="$3"
+
+    local APP
+    APP=$(get_json_value "$UPLOAD_REPORT_FILE" "app")
+    local TIMESTAMP
+    TIMESTAMP=$(get_json_value "$UPLOAD_REPORT_FILE" "timestamp")
+    local ARTEFACTS_LINK
+    ARTEFACTS_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "artefacts")
+    local LOGS_LINK
+    LOGS_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "logs")
+    local NUM_FAILED
+    NUM_FAILED=$(get_json_value "$UPLOAD_REPORT_FILE" "num_failed")
+
+    printf "# [%s] (e2e run from %s)\n\n" "$(echo "$APP" | tr '[:lower:]' '[:upper:]')" "$TIMESTAMP" > "$MD_REPORT_FILE"
+    printf "[All artefacts](%s), [logs](%s)\n\n" "$ARTEFACTS_LINK" "$LOGS_LINK" >> "$MD_REPORT_FILE"
+
+    if (( NUM_FAILED == 0 )); then
+        printf "> [!TIP]\n> All tests have passed\n" >> "$MD_REPORT_FILE"
+    else
+        printf "> [!CAUTION]\n> **%d** tests have failed\n" "$NUM_FAILED" >> "$MD_REPORT_FILE"
+
+        local SECTIONS=()
+        for (( i = 0; i < NUM_FAILED; ++i )); do
+            local TEST_NAME
+            TEST_NAME=$(get_json_value "$UPLOAD_REPORT_FILE" "failed[$i].name")
+            printf ">   - [%s](#%s)\n" "$TEST_NAME" "$(normalize_markdown_anchor "$TEST_NAME" "$MD_FLAVOR")" >> "$MD_REPORT_FILE"
+
+            local CAPTURE_LINK
+            CAPTURE_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "failed[$i].capture")
+            local DIFF_LINK
+            DIFF_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "failed[$i].diff")
+
+            read -r -d '' SECTION <<EOF
+## $TEST_NAME
+Captured file | Diff file
+--------------|----------
+![Captured file]($CAPTURE_LINK)         | ![Diff file]($DIFF_LINK)
+
+EOF
+
+            SECTIONS+=("$SECTION")
+        done
+
+        printf "\n" >> "$MD_REPORT_FILE"
+
+        for SECTION in "${SECTIONS[@]}"; do
+            printf "%s\n" "$SECTION" >> "$MD_REPORT_FILE"
+        done
+    fi
+}
+
+# Add and commit the e2e tests report in a git repository.
+# Expected args:
+# 1. the same upload report file as upload_e2e_tests_artefacts
+# 2. the report file to add to the repo
+# 3. the repository url to use to clone and push (must be able to push!)
+# 4. a folder in which the report will be moved
+push_e2e_tests_report_to_git_repo() {
+    local UPLOAD_FILE="$1"
+    local REPORT_FILE="$2"
+    local REPOSITORY_URL="$3"
+    local REPORTS_BASE="$4"
+
+    local APP
+    APP=$(get_json_value "$UPLOAD_FILE" "app")
+    local TIMESTAMP
+    TIMESTAMP=$(get_json_value "$UPLOAD_FILE" "timestamp")
+
+    local WORK_DIR
+    WORK_DIR="$(mktemp -d -p "$TMP_DIR" push.XXXXXX)"
+
+    # Clone repo to a temp location
+    git clone --depth 1 "$REPOSITORY_URL" "$WORK_DIR"
+    # Copy report
+    local REPORT_DIR="$WORK_DIR"
+    [[ "$REPORTS_BASE" != "" ]] && REPORT_DIR="$REPORT_DIR/$REPORTS_BASE"
+    REPORT_DIR="$REPORT_DIR/$APP/$TIMESTAMP"
+    mkdir -p "$REPORT_DIR"
+
+    cp "$REPORT_FILE" "$REPORT_DIR"
+    cd "$WORK_DIR"
+    git add --all
+    git -c user.name="CI bot" -c user.email="cibot@kalisio.com" commit --message "ci: e2e tests report from $TIMESTAMP"
+    git push origin
+    cd ~-
+
+    rm -fR "$WORK_DIR"
+}
+
+# Take all steps to run e2e test and push results to a git repository. Binary artefacts
+# are uploaded on an s3 bucket.
+# Expected args:
+# 1. the app root dir
+# 2. the app name
+# 3. the s3 bucket where to upload binary artefacts
+# 4. the rclone.conf file to use with rclone
+# 5. the git repository url where we'll push the final report (must be able to push!)
+# 6. a folder in which the report will be moved
+run_and_publish_e2e_tests_to_git_repo() {
+    local ROOT_DIR="$1"
+    local APP="$2"
+    local S3_BUCKET="$3"
+    local RCLONE_CONF="$4"
+    local REPOSITORY_URL="$5"
+    local REPORTS_BASE="$6"
+
+    run_e2e_tests "$ROOT_DIR" "$APP"
+
+    local MD_FLAVOR
+    [[ "$REPOSITORY_URL" = *gitlab* ]] && MD_FLAVOR="gitlab"
+    [[ "$REPOSITORY_URL" = *github* ]] && MD_FLAVOR="github"
+
+    local UPLOAD_REPORT_FILE="$TMP_DIR/e2e-upload-report.json"
+    local MD_REPORT_FILE="$TMP_DIR/e2e.md"
+
+    upload_e2e_tests_artefacts \
+        "$ROOT_DIR" "$APP" \
+        "$S3_BUCKET" "$RCLONE_CONF" \
+        "$UPLOAD_REPORT_FILE"
+    generate_e2e_tests_markdown_report \
+        "$UPLOAD_REPORT_FILE" "$MD_REPORT_FILE" "$MD_FLAVOR"
+    push_e2e_tests_report_to_git_repo \
+        "$UPLOAD_REPORT_FILE" "$MD_REPORT_FILE" \
+        "$REPOSITORY_URL" "$REPORTS_BASE"
 }
