@@ -1714,7 +1714,7 @@ run_e2e_tests () {
 
     # Chrome
     mkdir -p "$TESTS_RESULTS"
-    yarn test:client 2>&1 | tee "$TESTS_RESULTS/chrome_logs.txt"
+    yarn test:client 2>&1 | tee "$TESTS_RESULTS/logs.txt"
 
     # Firefox
     # PUPPETEER_PRODUCT=firefox yarn add puppeteer
