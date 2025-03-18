@@ -1722,21 +1722,21 @@ run_e2e_tests () {
     # yarn link "@kalisio/kdk" --link-folder /opt/kalisio/yarn-links
     # export BROWSER="firefox"bucket
     # mkdir -p "$ROOT_DIR/test/run/firefox"
-    return "$RET" # return the exit code of the tests
+    return "$RET" # return the exit code of the tests (= number of failed tests)
 }
 
 # Upload e2e tests artefacts to some s3 storage.
 # Expected args:
 # 1. the app root dir
 # 2. the app name
-# 3. the return code of the testing process
+# 3. the number of failed tests
 # 4. the s3 bucket where to upload artefacts (with a rclone remote, like ovh:e2e-test/blabla)
 # 5. the rclone.conf file to use to upload artefacts
 # 6. the file where the upload report will be written (json)
 upload_e2e_tests_artefacts() {
     local ROOT_DIR="$1"
     local APP="$2"
-    local TESTS_RET_CODE="$3"
+    local NUM_FAILED="$3"
     local S3_BUCKET="$4"
     local RCLONE_CONF="$5"
     local UPLOAD_REPORT_FILE="$6"
@@ -1759,7 +1759,7 @@ upload_e2e_tests_artefacts() {
     cp "$TESTS_RESULTS_DIR/logs.txt" "$WORK_DIR/logs.txt"
 
     # and keep captures and diffs for failed tests
-    local FAILED_TESTS=()
+    local TESTS_WITH_DIFF=()
     readarray -d '' DIFF_FILES < <(find "$TESTS_RESULTS_DIR" -type f -name 'diff.*.png' -print0)
     for DIFF_FILE in "${DIFF_FILES[@]}"; do
         local BASE_DIFF_FILE
@@ -1776,7 +1776,7 @@ upload_e2e_tests_artefacts() {
         local TEST_NAME
         TEST_NAME="$TEST_DIR/${BASE_CAPTURE_FILE%.*}"
 
-        FAILED_TESTS+=("$TEST_NAME")
+        TESTS_WITH_DIFF+=("$TEST_NAME")
 
         mkdir -p "$WORK_DIR/$TEST_DIR"
         cp "$DIFF_FILE" "$WORK_DIR/$TEST_DIR"
@@ -1793,10 +1793,10 @@ upload_e2e_tests_artefacts() {
     local LOGS_LINK
     LOGS_LINK="$(rclone --config "$RCLONE_CONF" link "$REMOTE_DIR/logs.txt")"
 
-    printf '{ "app": "%s", "timestamp": "%s", "ret_code": "%d", "artefacts": "%s", "logs": "%s", "num_failed": "%d", "failed": [' "$APP" "$TIMESTAMP" "$TESTS_RET_CODE" "$ARTEFACTS_LINK" "$LOGS_LINK" "${#FAILED_TESTS[@]}" > "$UPLOAD_REPORT_FILE"
+    printf '{ "app": "%s", "timestamp": "%s", "num_failed": "%d", "artefacts": "%s", "logs": "%s", "num_diffs": "%d", "diffs": [' "$APP" "$TIMESTAMP" "$NUM_FAILED" "$ARTEFACTS_LINK" "$LOGS_LINK" "${#TESTS_WITH_DIFF[@]}" > "$UPLOAD_REPORT_FILE"
 
     local COMMA=""
-    for TEST_NAME in "${FAILED_TESTS[@]}"; do
+    for TEST_NAME in "${TESTS_WITH_DIFF[@]}"; do
         local CAPTURE_LINK
         CAPTURE_LINK="$(rclone --config "$RCLONE_CONF" link "$REMOTE_DIR/$TEST_NAME.png")"
         local DIFF_FILE
@@ -1825,12 +1825,14 @@ generate_e2e_tests_markdown_report() {
     APP=$(get_json_value "$UPLOAD_REPORT_FILE" "app")
     local TIMESTAMP
     TIMESTAMP=$(get_json_value "$UPLOAD_REPORT_FILE" "timestamp")
+    local NUM_FAILED
+    NUM_FAILED=$(get_json_value "$UPLOAD_REPORT_FILE" "num_failed")
     local ARTEFACTS_LINK
     ARTEFACTS_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "artefacts")
     local LOGS_LINK
     LOGS_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "logs")
-    local NUM_FAILED
-    NUM_FAILED=$(get_json_value "$UPLOAD_REPORT_FILE" "num_failed")
+    local NUM_DIFFS
+    NUM_DIFFS=$(get_json_value "$UPLOAD_REPORT_FILE" "num_diffs")
 
     printf "# [%s] (e2e run from %s)\n\n" "$(echo "$APP" | tr '[:lower:]' '[:upper:]')" "$TIMESTAMP" > "$MD_REPORT_FILE"
     printf "[All artefacts](%s), [logs](%s)\n\n" "$ARTEFACTS_LINK" "$LOGS_LINK" >> "$MD_REPORT_FILE"
@@ -1841,15 +1843,15 @@ generate_e2e_tests_markdown_report() {
         printf "> [!CAUTION]\n> **%d** tests have failed\n" "$NUM_FAILED" >> "$MD_REPORT_FILE"
 
         local SECTIONS=()
-        for (( i = 0; i < NUM_FAILED; ++i )); do
+        for (( i = 0; i < NUM_DIFFS; ++i )); do
             local TEST_NAME
-            TEST_NAME=$(get_json_value "$UPLOAD_REPORT_FILE" "failed[$i].name")
+            TEST_NAME=$(get_json_value "$UPLOAD_REPORT_FILE" "diff[$i].name")
             printf ">   - [%s](#%s)\n" "$TEST_NAME" "$(normalize_markdown_anchor "$TEST_NAME" "$MD_FLAVOR")" >> "$MD_REPORT_FILE"
 
             local CAPTURE_LINK
-            CAPTURE_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "failed[$i].capture")
+            CAPTURE_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "diff[$i].capture")
             local DIFF_LINK
-            DIFF_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "failed[$i].diff")
+            DIFF_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "diff[$i].diff")
 
             read -r -d '' SECTION <<EOF
 ## $TEST_NAME
@@ -1925,14 +1927,14 @@ push_e2e_tests_report_to_slack() {
 
     local APP
     APP=$(get_json_value "$UPLOAD_REPORT_FILE" "app")
-    local TESTS_RET_CODE
-    TESTS_RET_CODE=$(get_json_value "$UPLOAD_REPORT_FILE" "ret_code")
+    local NUM_FAILED
+    NUM_FAILED=$(get_json_value "$UPLOAD_REPORT_FILE" "num_failed")
     local ARTEFACTS_LINK
     ARTEFACTS_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "artefacts")
     local LOGS_LINK
     LOGS_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "logs")
 
-    slack_e2e_report "$APP" "$TESTS_RET_CODE" "$SLACK_WEBHOOK" "$LOGS_LINK" "$ARTEFACTS_LINK"
+    slack_e2e_report "$APP" "$NUM_FAILED" "$SLACK_WEBHOOK" "$LOGS_LINK" "$ARTEFACTS_LINK"
 }
 
 # Take all steps to run e2e test and push results to a git repository. Binary artefacts
@@ -1953,7 +1955,7 @@ run_and_publish_e2e_tests_to_git_repo() {
     local REPORTS_BASE="$6"
 
     run_e2e_tests "$ROOT_DIR" "$APP"
-    local TESTS_RET_CODE="$?"
+    local NUM_FAILED="$?"
 
     local MD_FLAVOR
     [[ "$REPOSITORY_URL" = *gitlab* ]] && MD_FLAVOR="gitlab"
@@ -1963,7 +1965,7 @@ run_and_publish_e2e_tests_to_git_repo() {
     local MD_REPORT_FILE="$TMP_DIR/e2e.md"
 
     upload_e2e_tests_artefacts \
-        "$ROOT_DIR" "$APP" "$TESTS_RET_CODE" \
+        "$ROOT_DIR" "$APP" "$NUM_FAILED" \
         "$S3_BUCKET" "$RCLONE_CONF" \
         "$UPLOAD_REPORT_FILE"
     generate_e2e_tests_markdown_report \
@@ -1989,12 +1991,12 @@ run_and_publish_e2e_tests_to_slack() {
     local SLACK_WEBHOOK="$5"
 
     run_e2e_tests "$ROOT_DIR" "$APP"
-    local TESTS_RET_CODE="$?"
+    local NUM_FAILED="$?"
 
     local UPLOAD_REPORT_FILE="$TMP_DIR/e2e-upload-report.json"
 
     upload_e2e_tests_artefacts \
-        "$ROOT_DIR" "$APP" "$TESTS_RET_CODE" \
+        "$ROOT_DIR" "$APP" "$NUM_FAILED" \
         "$S3_BUCKET" "$RCLONE_CONF" \
         "$UPLOAD_REPORT_FILE"
     push_e2e_tests_report_to_slack \
