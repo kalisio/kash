@@ -1845,13 +1845,13 @@ generate_e2e_tests_markdown_report() {
         local SECTIONS=()
         for (( i = 0; i < NUM_DIFFS; ++i )); do
             local TEST_NAME
-            TEST_NAME=$(get_json_value "$UPLOAD_REPORT_FILE" "diff[$i].name")
+            TEST_NAME=$(get_json_value "$UPLOAD_REPORT_FILE" "diffs[$i].name")
             printf ">   - [%s](#%s)\n" "$TEST_NAME" "$(normalize_markdown_anchor "$TEST_NAME" "$MD_FLAVOR")" >> "$MD_REPORT_FILE"
 
             local CAPTURE_LINK
-            CAPTURE_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "diff[$i].capture")
+            CAPTURE_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "diffs[$i].capture")
             local DIFF_LINK
-            DIFF_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "diff[$i].diff")
+            DIFF_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "diffs[$i].diff")
 
             read -r -d '' SECTION <<EOF
 ## $TEST_NAME
