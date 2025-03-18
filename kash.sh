@@ -1715,13 +1715,14 @@ run_e2e_tests () {
     # Chrome
     mkdir -p "$TESTS_RESULTS"
     yarn test:client 2>&1 | tee "$TESTS_RESULTS/logs.txt"
+    local RET="${PIPESTATUS[0]}"
 
     # Firefox
     # PUPPETEER_PRODUCT=firefox yarn add puppeteer
     # yarn link "@kalisio/kdk" --link-folder /opt/kalisio/yarn-links
     # export BROWSER="firefox"bucket
     # mkdir -p "$ROOT_DIR/test/run/firefox"
-    return $? # return the exit code of the tests
+    return "$RET" # return the exit code of the tests
 }
 
 # Upload e2e tests artefacts to some s3 storage.
@@ -1896,6 +1897,14 @@ push_e2e_tests_report_to_git_repo() {
     mkdir -p "$REPORT_DIR"
 
     cp "$REPORT_FILE" "$REPORT_DIR"
+
+    # Try add link to 'latest' section
+    local LATEST_REPORT
+    LATEST_REPORT=$(realpath --relative-to="$WORK_DIR" "$REPORT_FILE")
+
+    # It's ok if this fails
+    sed -i 's/^['"$APP"' e2e](.*)$/['"$APP"' e2e]('"$LATEST_REPORT"')/' "$WORK_DIR/README.md" || true
+
     cd "$WORK_DIR"
     git add --all
     git -c user.name="CI bot" -c user.email="cibot@kalisio.com" commit --message "ci: e2e tests report from $TIMESTAMP"
@@ -1922,7 +1931,7 @@ run_and_publish_e2e_tests_to_git_repo() {
     local REPOSITORY_URL="$5"
     local REPORTS_BASE="$6"
 
-    run_e2e_tests "$ROOT_DIR" "$APP"
+    run_e2e_tests "$ROOT_DIR" "$APP" || true
 
     local MD_FLAVOR
     [[ "$REPOSITORY_URL" = *gitlab* ]] && MD_FLAVOR="gitlab"
