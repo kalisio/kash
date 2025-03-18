@@ -1729,15 +1729,17 @@ run_e2e_tests () {
 # Expected args:
 # 1. the app root dir
 # 2. the app name
-# 3. the s3 bucket where to upload artefacts (with a rclone remote, like ovh:e2e-test/blabla)
-# 4. the rclone.conf file to use to upload artefacts
-# 5. the file where the upload report will be written (json)
+# 3. the return code of the testing process
+# 4. the s3 bucket where to upload artefacts (with a rclone remote, like ovh:e2e-test/blabla)
+# 5. the rclone.conf file to use to upload artefacts
+# 6. the file where the upload report will be written (json)
 upload_e2e_tests_artefacts() {
     local ROOT_DIR="$1"
     local APP="$2"
-    local S3_BUCKET="$3"
-    local RCLONE_CONF="$4"
-    local UPLOAD_REPORT_FILE="$5"
+    local TESTS_RET_CODE="$3"
+    local S3_BUCKET="$4"
+    local RCLONE_CONF="$5"
+    local UPLOAD_REPORT_FILE="$6"
 
     local TIMESTAMP
     TIMESTAMP="$(date +"%d-%m-%Y")"
@@ -1791,7 +1793,7 @@ upload_e2e_tests_artefacts() {
     local LOGS_LINK
     LOGS_LINK="$(rclone --config "$RCLONE_CONF" link "$REMOTE_DIR/logs.txt")"
 
-    printf '{ "app": "%s", "timestamp": "%s", "artefacts": "%s", "logs": "%s", "num_failed": "%d", "failed": [' "$APP" "$TIMESTAMP" "$ARTEFACTS_LINK" "$LOGS_LINK" "${#FAILED_TESTS[@]}" > "$UPLOAD_REPORT_FILE"
+    printf '{ "app": "%s", "timestamp": "%s", "ret_code": "%d", "artefacts": "%s", "logs": "%s", "num_failed": "%d", "failed": [' "$APP" "$TIMESTAMP" "$TESTS_RET_CODE" "$ARTEFACTS_LINK" "$LOGS_LINK" "${#FAILED_TESTS[@]}" > "$UPLOAD_REPORT_FILE"
 
     local COMMA=""
     for TEST_NAME in "${FAILED_TESTS[@]}"; do
@@ -1913,6 +1915,26 @@ push_e2e_tests_report_to_git_repo() {
     rm -fR "$WORK_DIR"
 }
 
+# Send the e2e tests report to a slack channel.
+# Expected args:
+# 1. the same upload report file as upload_e2e_tests_artefacts
+# 2. the slack channel webhook
+push_e2e_tests_report_to_slack() {
+    local UPLOAD_REPORT_FILE="$1"
+    local SLACK_WEBHOOK="$2"
+
+    local APP
+    APP=$(get_json_value "$UPLOAD_REPORT_FILE" "app")
+    local TESTS_RET_CODE
+    TESTS_RET_CODE=$(get_json_value "$UPLOAD_REPORT_FILE" "ret_code")
+    local ARTEFACTS_LINK
+    ARTEFACTS_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "artefacts")
+    local LOGS_LINK
+    LOGS_LINK=$(get_json_value "$UPLOAD_REPORT_FILE" "logs")
+
+    slack_e2e_report "$APP" "$TESTS_RET_CODE" "$SLACK_WEBHOOK" "$LOGS_LINK" "$ARTEFACTS_LINK"
+}
+
 # Take all steps to run e2e test and push results to a git repository. Binary artefacts
 # are uploaded on an s3 bucket.
 # Expected args:
@@ -1931,6 +1953,7 @@ run_and_publish_e2e_tests_to_git_repo() {
     local REPORTS_BASE="$6"
 
     run_e2e_tests "$ROOT_DIR" "$APP"
+    local TESTS_RET_CODE="$?"
 
     local MD_FLAVOR
     [[ "$REPOSITORY_URL" = *gitlab* ]] && MD_FLAVOR="gitlab"
@@ -1940,7 +1963,7 @@ run_and_publish_e2e_tests_to_git_repo() {
     local MD_REPORT_FILE="$TMP_DIR/e2e.md"
 
     upload_e2e_tests_artefacts \
-        "$ROOT_DIR" "$APP" \
+        "$ROOT_DIR" "$APP" "$TESTS_RET_CODE" \
         "$S3_BUCKET" "$RCLONE_CONF" \
         "$UPLOAD_REPORT_FILE"
     generate_e2e_tests_markdown_report \
@@ -1948,4 +1971,32 @@ run_and_publish_e2e_tests_to_git_repo() {
     push_e2e_tests_report_to_git_repo \
         "$UPLOAD_REPORT_FILE" "$MD_REPORT_FILE" \
         "$REPOSITORY_URL" "$REPORTS_BASE"
+}
+
+# Take all steps to run e2e test and push results to a slack channel. Binary artefacts
+# are uploaded on an s3 bucket.
+# Expected args:
+# 1. the app root dir
+# 2. the app name
+# 3. the s3 bucket where to upload binary artefacts
+# 4. the rclone.conf file to use with rclone
+# 5. the slack channel webhook
+run_and_publish_e2e_tests_to_slack() {
+    local ROOT_DIR="$1"
+    local APP="$2"
+    local S3_BUCKET="$3"
+    local RCLONE_CONF="$4"
+    local SLACK_WEBHOOK="$5"
+
+    run_e2e_tests "$ROOT_DIR" "$APP"
+    local TESTS_RET_CODE="$?"
+
+    local UPLOAD_REPORT_FILE="$TMP_DIR/e2e-upload-report.json"
+
+    upload_e2e_tests_artefacts \
+        "$ROOT_DIR" "$APP" "$TESTS_RET_CODE" \
+        "$S3_BUCKET" "$RCLONE_CONF" \
+        "$UPLOAD_REPORT_FILE"
+    push_e2e_tests_report_to_slack \
+        "$UPLOAD_REPORT_FILE" "$SLACK_WEBHOOK"
 }
