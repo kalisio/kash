@@ -134,8 +134,6 @@ KUBECTL_VERSION=1.28.13
 HELM_VERSION=3.14.4
 # https://github.com/helmfile/helmfile/releases
 HELMFILE_VERSION=0.167.1
-# https://github.com/derailed/k9s/releases
-K9S_VERSION=0.32.4
 
 # https://github.com/nvm-sh/nvm/releases
 NVM_VERSION=0.39.7
@@ -445,25 +443,6 @@ install_helmfile() {
     cd "$DL_PATH"
     tar xf helmfile_${HELMFILE_VERSION}_linux_amd64.tar.gz
     cp helmfile ~/.local/bin
-    cd ~-
-}
-
-# Install k9s in ~/.local/bin
-# Expected args:
-#  1. a writable folder where to write downloaded files
-install_k9s() {
-    local DL_ROOT=$1
-    local DL_PATH="$DL_ROOT/k9s"
-    if [ ! -d "$DL_PATH" ]; then
-        mkdir -p "$DL_PATH" && cd "$DL_PATH"
-        curl -OLsS https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_amd64.tar.gz
-        curl -OLsS https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/checksums.sha256
-        sha256sum --ignore-missing --quiet -c checksums.sha256
-        cd ~-
-    fi
-    cd "$DL_PATH"
-    tar xf k9s_Linux_amd64.tar.gz
-    cp k9s ~/.local/bin
     cd ~-
 }
 

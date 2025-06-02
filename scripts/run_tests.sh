@@ -18,7 +18,7 @@ init_github() {
         install_reqs mongo7 mongo8
     fi
 
-    install_reqs kubectl helm helmfile k9s
+    install_reqs kubectl helm helmfile
 }
 
 ## Requirements helpers
@@ -67,10 +67,10 @@ cd ~-
 
 case "$CI_ID" in
     github)
-        [ "$(get_git_branch "$ROOT_DIR" )" != "$GITHUB_REF_NAME" ] && exit 1
+        [ "$(get_git_branch "$ROOT_DIR")" != "$GITHUB_REF_NAME" ] && exit 1
         ;;
     gitlab)
-        [ "$(get_git_branch "$ROOT_DIR" )" != "$CI_COMMIT_REF_NAME" ] && exit 1
+        [ "$(get_git_branch "$ROOT_DIR")" != "$CI_COMMIT_REF_NAME" ] && exit 1
         ;;
     *)
         ;;
