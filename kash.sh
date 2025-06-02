@@ -146,8 +146,8 @@ NODE20_VERSION=20.11.1
 NODE22_VERSION=22.3.0
 
 # https://www.mongodb.com/try/download/community
-MONGODB7_VERSION=7.0.15
-MONGODB8_VERSION=8.0.3
+MONGODB7_VERSION=7.0.20
+MONGODB8_VERSION=8.0.9
 
 # https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner/
 SONAR_SCANNER_CLI_VERSION=6.2.1.4610
