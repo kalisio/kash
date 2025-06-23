@@ -1596,9 +1596,6 @@ build_docs () {
 
     begin_group "Building docs for $REPOSITORY ..."
 
-    # Build process requires node 18
-    use_node 18
-
     rm -f .postcssrc.js && cd docs && yarn install && yarn build
 
     if [ "$PUBLISH" = true ]; then
