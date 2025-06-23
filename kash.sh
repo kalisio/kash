@@ -136,16 +136,14 @@ HELM_VERSION=3.14.4
 HELMFILE_VERSION=0.167.1
 
 # https://github.com/nvm-sh/nvm/releases
-NVM_VERSION=0.39.7
+NVM_VERSION=0.40.3
 # https://nodejs.org/en/about/previous-releases#looking-for-latest-release-of-a-version-branch
-NODE16_VERSION=16.20.2
-NODE18_VERSION=18.19.1
-NODE20_VERSION=20.11.1
-NODE22_VERSION=22.3.0
+NODE20_VERSION=20.19
+NODE22_VERSION=22.16
 
 # https://www.mongodb.com/try/download/community
-MONGODB7_VERSION=7.0.20
-MONGODB8_VERSION=8.0.9
+MONGODB7_VERSION=7.0.21
+MONGODB8_VERSION=8.0.10
 
 # https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner/
 SONAR_SCANNER_CLI_VERSION=6.2.1.4610

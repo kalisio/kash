@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `build_docs` now takes a fourth parameter, the version of node to use to build the docs
   - `send_coverage_to_cc` now takes a second parameter, the prefix to add to files in coverage report
   - `run_kli` now uses the `--fail-on-error` kli flag
+  - nvm bumped to `0.40.3`
+  - node20 bumped to `20.19`
+  - node22 bumped to `22.16`
+  - mongodb7 bumped to `7.0.21`
+  - mongodb8 bumped to `8.0.10`
 
 ### Fixed
 
