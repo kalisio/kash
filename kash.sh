@@ -129,11 +129,11 @@ AGE_VERSION=1.1.1
 SOPS_VERSION=3.8.1
 
 # https://github.com/kubernetes/kubernetes/tree/master/CHANGELOG
-KUBECTL_VERSION=1.28.13
+KUBECTL_VERSION=1.31.11
 # https://github.com/helm/helm/releases
-HELM_VERSION=3.14.4
+HELM_VERSION=3.18.4
 # https://github.com/helmfile/helmfile/releases
-HELMFILE_VERSION=0.167.1
+HELMFILE_VERSION=1.1.3
 
 # https://github.com/nvm-sh/nvm/releases
 NVM_VERSION=0.40.3
