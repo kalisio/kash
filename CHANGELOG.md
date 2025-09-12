@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - node22 bumped to `22.16`
   - mongodb7 bumped to `7.0.21`
   - mongodb8 bumped to `8.0.10`
+  - allow `_` character in custom fields (see `get_custom_from_git_ref`)
 
 ### Fixed
 
