@@ -129,6 +129,7 @@ git_shallow_clone https://github.com/kalisio/kApp.git "$TMP_DIR/kApp.v1.3.0" pro
 [[ "$(get_custom_from_git_ref "test-v4.3-blabla")" != "blabla" ]] && exit 1
 [[ "$(get_custom_from_git_ref "prod-v4.5.3")" != "" ]] && exit 1
 [[ "$(get_custom_from_git_ref "prod-v4.5.3-custom")" != "custom" ]] && exit 1
+[[ "$(get_custom_from_git_ref "prod-v4.5.3-custom_foo")" != "custom_foo" ]] && exit 1
 
 # Setup a fake workspace with additional dependencies
 mkdir -p "$TMP_DIR/fake"

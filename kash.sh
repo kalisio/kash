@@ -1003,7 +1003,7 @@ get_version_from_git_ref() {
 get_custom_from_git_ref() {
     local GIT_REF=$1
 
-    local CUSTOM_REGEX="(^|-)([a-zA-Z0-9]+)$"
+    local CUSTOM_REGEX="(^|-)([a-zA-Z0-9_]+)$"
     if [[ "$GIT_REF" =~ $CUSTOM_REGEX ]]; then
         if [[ "${BASH_REMATCH[1]}" == "" ]]; then
             # If first capture group is empty => that's probably a 'dev' flavor.
