@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - mongodb7 bumped to `7.0.21`
   - mongodb8 bumped to `8.0.10`
   - allow `_` character in custom fields (see `get_custom_from_git_ref`)
+  - run_app_tests now run lint on whole project repo (using `yarn lint`)
 
 ### Fixed
 

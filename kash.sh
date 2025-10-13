@@ -1307,6 +1307,13 @@ run_app_tests() {
 
     echo "About to run tests for $APP v$VERSION-$FLAVOR ..."
 
+    ## Lint whole project
+    ##
+
+    cd "$REPO_DIR"
+    yarn lint
+    cd ~-
+
     ## Start mongo
     ##
 
@@ -1322,7 +1329,7 @@ run_app_tests() {
     ## Run tests
     ##
 
-    pushd "$REPO_DIR/api"
+    cd "$REPO_DIR/api"
 
     use_node "$NODE_VER"
     yarn test
@@ -1334,7 +1341,7 @@ run_app_tests() {
         send_coverage_to_cc "$CC_TEST_REPORTER_ID" "api"
     fi
 
-    popd
+    cd ~-
 }
 
 # Setup the workspace for a lib project.
