@@ -486,12 +486,28 @@ use_mongo() {
 ### Utils
 ###
 
+# Extract a value from a TOML file
+# Expected args:
+# 1. the toml file
+# 2. the field to extract
+get_toml_value() {
+    local TOML_SRC="$1"
+    local TOML_FIELD="$2"
+
+    ensure_yq
+    yq --input-format=toml --output-format=yaml ".$TOML_FIELD" "$TOML_SRC"
+}
+
+# Extract a value from a JSON file
+# Expected args:
+# 1. the toml file
+# 2. the field to extract
 get_json_value() {
     local JSON_SRC="$1"
     local JSON_FIELD="$2"
 
     ensure_yq
-    yq --output-format=yaml ".$JSON_FIELD" "$JSON_SRC"
+    yq --input-format=yaml --output-format=yaml ".$JSON_FIELD" "$JSON_SRC"
 }
 
 # Extract version major from a version string.

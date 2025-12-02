@@ -49,6 +49,8 @@ mkdir -p "$TMP_DIR/utils"
 cd "$TMP_DIR/utils"
 curl -OLsS "https://raw.githubusercontent.com/kalisio/krawler/master/package.json"
 [ "$(get_json_value "$TMP_DIR/utils/package.json" 'name')" != "@kalisio/krawler" ] && exit 1
+curl -OLsS "https://raw.githubusercontent.com/kalisio/kazarr/refs/heads/master/pyproject.toml"
+[ "$(get_toml_value "$TMP_DIR/utils/pyproject.toml" 'project.name')" != "kazarr" ] && exit 1
 cd ~-
 
 [ "$(get_semver_major "1" )" != "1" ] && exit 1
