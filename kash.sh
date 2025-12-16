@@ -246,34 +246,6 @@ ensure_sops() {
     fi
 }
 
-# Install code climate test reporter in ~/.local/bin
-# Arg1: a writable folder where to write downloaded files
-install_cc_test_reporter() {
-    local DL_ROOT=$1
-    local DL_PATH="$DL_ROOT/cc"
-    if [ ! -d "$DL_PATH" ]; then
-        mkdir -p "$DL_PATH" && cd "$DL_PATH"
-        curl -OLsS https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64
-        curl -OLsS https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64.sha256
-        sha256sum --ignore-missing --quiet -c test-reporter-latest-linux-amd64.sha256
-        cd ~-
-    fi
-    cd "$DL_PATH"
-    cp test-reporter-latest-linux-amd64 ~/.local/bin/cc-test-reporter
-    chmod +x ~/.local/bin/cc-test-reporter
-    cd ~-
-}
-
-# Sends test coverage to code climate
-# Arg1: code climate identifier for authentication
-# Arg2: prefix to use when using format-coverage (can be empty)
-send_coverage_to_cc() {
-    local CC_TEST_REPORTER_ID=$1
-    local CC_PREFIX=${2:-}
-    ~/.local/bin/cc-test-reporter format-coverage -t lcov --add-prefix "$CC_PREFIX" coverage/lcov.info
-    ~/.local/bin/cc-test-reporter upload-coverage -r "$CC_TEST_REPORTER_ID"
-}
-
 # Make sure nvm is installed
 # Arg1: a writable folder where to write downloaded files
 # NOTE: also define 'yarn' as a default package, ie. it'll be automatically
@@ -1300,13 +1272,11 @@ get_app_kli_file() {
 # Expected arguments:
 # 1. the app repository directory
 # 2. the directory in which we'll find kli files relative to the 'development' repository root directory
-# 3. wether to publish code coverage results (boolean)
 # 4. the node version to use (16, 18, ...)
 # 5. the mongo version to use (5, 6, ...). Mongo will not be started if not provided
 run_app_tests() {
     local REPO_DIR="$1"
     local KLI_BASE="$2"
-    local CODE_COVERAGE="$3"
     local NODE_VER="$4"
     local MONGO_VER="$5"
     local WORKSPACE_DIR
@@ -1349,13 +1319,6 @@ run_app_tests() {
 
     use_node "$NODE_VER"
     yarn test
-
-    ## Publish code coverage
-    ##
-
-    if [ "$CODE_COVERAGE" = true ]; then
-        send_coverage_to_cc "$CC_TEST_REPORTER_ID" "api"
-    fi
 
     cd ~-
 }
@@ -1420,12 +1383,10 @@ get_lib_branch() {
 # Run tests for a library module
 # Expected arguments
 # 1. Root directory
-# 2. true to publish code coverage to code climate (CC_TEST_REPORTER_ID env var should be defined in this case)
 # 3. node version to be used
 # 4. mongo version to be used if required by tests
 run_lib_tests () {
     local ROOT_DIR="$1"
-    local CODE_COVERAGE="$2"
     local NODE_VER="$3"
     local MONGO_VER="$4"
     local WORKSPACE_DIR
@@ -1460,12 +1421,6 @@ run_lib_tests () {
     use_node "$NODE_VER"
     yarn && yarn test
 
-    ## Publish code coverage
-    ##
-
-    if [ "$CODE_COVERAGE" = true ]; then
-        send_coverage_to_cc "$CC_TEST_REPORTER_ID"
-    fi
 }
 
 # Setup the workspace for a krawler job project.

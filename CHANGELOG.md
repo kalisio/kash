@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - support for mongo 4,5,6
   - helper to install k9s
   - support for node 16,18
+  - support for Code Climate
   
 ### Changed
 
