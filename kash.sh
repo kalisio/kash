@@ -1272,11 +1272,13 @@ get_app_kli_file() {
 # Expected arguments:
 # 1. the app repository directory
 # 2. the directory in which we'll find kli files relative to the 'development' repository root directory
+# 3. whether to run SonarQube analysis and publish code quality & coverage results (boolean)
 # 4. the node version to use (16, 18, ...)
 # 5. the mongo version to use (5, 6, ...). Mongo will not be started if not provided
 run_app_tests() {
     local REPO_DIR="$1"
     local KLI_BASE="$2"
+    local RUN_SONAR="$3"
     local NODE_VER="$4"
     local MONGO_VER="$5"
     local WORKSPACE_DIR
@@ -1319,6 +1321,13 @@ run_app_tests() {
 
     use_node "$NODE_VER"
     yarn test
+
+    ## Run SonarQube analysis and publish code quality & coverage reports
+    ##
+
+    if [ "$RUN_SONAR" = true ]; then
+        cd "$ROOT_DIR" && sonar-scanner
+    fi
 
     cd ~-
 }
@@ -1383,10 +1392,12 @@ get_lib_branch() {
 # Run tests for a library module
 # Expected arguments
 # 1. Root directory
+# 2. whether to run SonarQube analysis and publish code quality & coverage results (boolean)
 # 3. node version to be used
 # 4. mongo version to be used if required by tests
 run_lib_tests () {
     local ROOT_DIR="$1"
+    local RUN_SONAR="$2"
     local NODE_VER="$3"
     local MONGO_VER="$4"
     local WORKSPACE_DIR
@@ -1421,6 +1432,12 @@ run_lib_tests () {
     use_node "$NODE_VER"
     yarn && yarn test
 
+    ## Run SonarQube analysis and publish code quality & coverage reports
+    ##
+
+    if [ "$RUN_SONAR" = true ]; then
+        cd "$ROOT_DIR" && sonar-scanner
+    fi
 }
 
 # Setup the workspace for a krawler job project.
