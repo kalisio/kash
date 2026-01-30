@@ -267,7 +267,7 @@ install_nvm() {
     bash ./install.sh
     # We always use yarn as package manager, so tell nvm to install it with every node installation
     # cf. https://github.com/nvm-sh/nvm?tab=readme-ov-file#default-global-packages-from-file-while-installing
-    bash -i -c 'echo yarn >> $NVM_DIR/default-packages'
+    bash -i -c 'echo yarn pnpm >> $NVM_DIR/default-packages'
     cd ~-
 }
 
@@ -289,6 +289,34 @@ install_node20() {
 # Install node22, requires nvm to be installed
 install_node22() {
     bash -i -c "nvm install $NODE22_VERSION"
+}
+
+# Return the node package manager
+get_node_package_manager() {
+    local REPO_ROOT="$1"
+    if [ -f "$REPO_ROOT/pnpm-lock.yaml" ]; then
+        echo "pnpm"
+        return 0
+    fi
+    if [ -f "$REPO_ROOT/yarn.lock" ]; then
+        echo "yarn"
+        return 0
+    fi
+    if [ -f "$REPO_ROOT/package-lock.json" ]; then
+        echo "npm"
+        return 0
+    fi
+    # Check for the packageManager property in package.json if any
+    if [ -f "$REPO_ROOT/package.json" ]; then
+        local PM=$(grep -o '"packageManager"[[:space:]]*:[[:space:]]*"[^"]*"' "$REPO_ROOT/package.json" | cut -d'"' -f4 | cut -d'@' -f1)
+        if [ -n "$PM" ]; then
+            echo "$PM"
+            return 0
+        fi
+    fi
+    # Fallback
+    echo "npm"
+    return 0
 }
 
 # Install mongo7 in ~/.local/bin/mongo7
@@ -1430,7 +1458,12 @@ run_lib_tests () {
     ##
 
     use_node "$NODE_VER"
-    yarn && yarn test
+    if PM=$(get_node_package_manager "$ROOT_DIR"); then
+        echo "Detected pacakge manager: $PM"
+        echo "Installing and testing the library"
+        $PM install
+        $PM test
+    fi
 
     ## Run SonarQube analysis and publish code quality & coverage reports
     ##
