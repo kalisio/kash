@@ -1625,7 +1625,8 @@ build_docs () {
 
     if PM=$(get_node_package_manager "$ROOT_DIR"); then
 
-        echo "Detected pacakge manager: $PM"
+        echo "Detected package manager: $PM"
+
         begin_group "Building docs for $REPOSITORY ..."
 
         if [ "$PM" = "pnpm" ]; then
