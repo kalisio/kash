@@ -1630,7 +1630,7 @@ build_docs () {
         begin_group "Building docs for $REPOSITORY ..."
 
         if [ "$PM" = "pnpm" ]; then
-            $PM install && $PM build:docs
+            $PM install && $PM docs:build
         else
             rm -f .postcssrc.js && cd docs && $PM install && $PM build
         fi
