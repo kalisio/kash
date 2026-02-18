@@ -721,8 +721,8 @@ git_shallow_clone() {
 # Deploys generated documentation using github pages system.
 # Arg1: the repository url
 # Arg2: the folder where documentation has been generated
-# Arg3: the author name to use when commiting the updated documentation.
-# Arg4: the author email to use when commiting the updated documentation.
+# Arg3: the author name to use when committing the updated documentation.
+# Arg4: the author email to use when committing the updated documentation.
 # Arg5: the commit message.
 # Arg6: the branch where to commit the documentation (defaults to gh-pages)
 deploy_gh_pages() {
@@ -741,7 +741,15 @@ deploy_gh_pages() {
     # Copy built doc
     cp -fR "$DOCS_DIR"/* "$WORK_DIR"
     # Add new doc and commit (add a .nojekyll file to skip Github jekyll processing)
-    cd "$WORK_DIR" && touch .nojekyll && git add --all && git -c user.name="$COMMIT_AUTHOR_NAME" -c user.email="$COMMIT_AUTHOR_EMAIL" commit --message "$COMMIT_MESSAGE"
+    cd "$WORK_DIR" && touch .nojekyll && git add --all
+    # Check whether the doc has changed otherwise commit will raise an error
+    # https://github.com/kalisio/kash/issues/8
+    if git diff --cached --quiet; then
+        echo "No changes to deploy"
+        return 0
+    fi
+    # Commit
+    git -c user.name="$COMMIT_AUTHOR_NAME" -c user.email="$COMMIT_AUTHOR_EMAIL" commit --message "$COMMIT_MESSAGE"
     # Push
     git push origin "$DOCS_BRANCH"
 }
