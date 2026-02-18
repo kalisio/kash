@@ -1623,29 +1623,37 @@ build_docs () {
     WORKSPACE_DIR="$(dirname "$ROOT_DIR")"
     local ORGANISATION="$(dirname $REPOSITORY)"
 
-    begin_group "Building docs for $REPOSITORY ..."
+    if PM=$(get_node_package_manager "$ROOT_DIR"); then
 
-    rm -f .postcssrc.js && cd docs && yarn install && yarn build
+        echo "Detected pacakge manager: $PM"
+        begin_group "Building docs for $REPOSITORY ..."
 
-    if [ "$PUBLISH" = true ]; then
-        # Extract organisation from token and get load corresponding env (filename is uppercase)
-        load_env_files "$WORKSPACE_DIR/development/common/${ORGANISATION^^}_GH_PAGES_PUSH_TOKEN.enc.env"
+        if [ "$PM" = "pnpm" ]; then
+            $PM install && $PM build:docs
+        else
+            rm -f .postcssrc.js && cd docs && $PM install && $PM build
+        fi
 
-        local COMMIT_SHA
-        COMMIT_SHA=$(get_git_commit_sha "$ROOT_DIR")
-        local COMMIT_AUTHOR_NAME
-        COMMIT_AUTHOR_NAME=$(get_git_commit_author_name "$ROOT_DIR")
-        local COMMIT_AUTHOR_EMAIL
-        COMMIT_AUTHOR_EMAIL=$(get_git_commit_author_email "$ROOT_DIR")
-        deploy_gh_pages \
-            "https://oauth2:$GH_PAGES_PUSH_TOKEN@github.com/$REPOSITORY.git" \
-            "$ROOT_DIR/docs/.vitepress/dist" \
-            "$COMMIT_AUTHOR_NAME" \
-            "$COMMIT_AUTHOR_EMAIL" \
-            "Docs built from $COMMIT_SHA"
+        if [ "$PUBLISH" = true ]; then
+            # Extract organisation from token and get load corresponding env (filename is uppercase)
+            load_env_files "$WORKSPACE_DIR/development/common/${ORGANISATION^^}_GH_PAGES_PUSH_TOKEN.enc.env"
+
+            local COMMIT_SHA
+            COMMIT_SHA=$(get_git_commit_sha "$ROOT_DIR")
+            local COMMIT_AUTHOR_NAME
+            COMMIT_AUTHOR_NAME=$(get_git_commit_author_name "$ROOT_DIR")
+            local COMMIT_AUTHOR_EMAIL
+            COMMIT_AUTHOR_EMAIL=$(get_git_commit_author_email "$ROOT_DIR")
+            deploy_gh_pages \
+                "https://oauth2:$GH_PAGES_PUSH_TOKEN@github.com/$REPOSITORY.git" \
+                "$ROOT_DIR/docs/.vitepress/dist" \
+                "$COMMIT_AUTHOR_NAME" \
+                "$COMMIT_AUTHOR_EMAIL" \
+                "Docs built from $COMMIT_SHA"
+        fi
+
+        end_group "Building docs for $REPOSITORY ..."
     fi
-
-    end_group "Building docs for $REPOSITORY ..."
 }
 
 ### e2e tests
