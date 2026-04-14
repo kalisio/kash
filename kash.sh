@@ -140,7 +140,8 @@ RCLONE_VERSION=1.73.4
 NVM_VERSION=0.40.3
 # https://nodejs.org/en/about/previous-releases#looking-for-latest-release-of-a-version-branch
 NODE20_VERSION=20.19
-NODE22_VERSION=22.16
+NODE22_VERSION=22.21
+NODE24_VERSION=24.12
 
 # https://www.mongodb.com/try/download/community
 MONGODB7_VERSION=7.0.21
@@ -291,6 +292,11 @@ install_node20() {
 # Install node22, requires nvm to be installed
 install_node22() {
     bash -i -c "nvm install $NODE22_VERSION"
+}
+
+# Install node24, requires nvm to be installed
+install_node24() {
+    bash -i -c "nvm install $NODE24_VERSION"
 }
 
 # Return the node package manager
