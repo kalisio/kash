@@ -134,7 +134,8 @@ KUBECTL_VERSION=1.31.11
 HELM_VERSION=3.18.4
 # https://github.com/helmfile/helmfile/releases
 HELMFILE_VERSION=1.1.3
-
+# https://github.com/rclone/rclone/releases
+RCLONE_VERSION=1.73.4
 # https://github.com/nvm-sh/nvm/releases
 NVM_VERSION=0.40.3
 # https://nodejs.org/en/about/previous-releases#looking-for-latest-release-of-a-version-branch
@@ -442,6 +443,24 @@ install_helmfile() {
     cd "$DL_PATH"
     tar xf helmfile_${HELMFILE_VERSION}_linux_amd64.tar.gz
     cp helmfile ~/.local/bin
+    cd ~-
+}
+
+# Install rclone in ~/.local/bin
+# Arg1: a writable folder where to write downloaded files
+install_rclone() {
+    local DL_ROOT=$1
+    local DL_PATH="$DL_ROOT/rclone"
+    if [ ! -d "$DL_PATH" ]; then
+        mkdir -p "$DL_PATH" && cd "$DL_PATH"
+        curl -OLsS https://downloads.rclone.org/v${RCLONE_VERSION}/rclone-v${RCLONE_VERSION}-linux-amd64.zip
+        curl -OLsS https://downloads.rclone.org/v${RCLONE_VERSION}/SHA256SUMS
+        grep "rclone-v${RCLONE_VERSION}-linux-amd64.zip" SHA256SUMS | sha256sum --check --quiet
+        cd ~-
+    fi
+    cd "$DL_PATH"
+    unzip -q rclone-v${RCLONE_VERSION}-linux-amd64.zip
+    cp rclone-v${RCLONE_VERSION}-linux-amd64/rclone ~/.local/bin
     cd ~-
 }
 
