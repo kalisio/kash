@@ -136,6 +136,7 @@ HELM_VERSION=3.18.4
 HELMFILE_VERSION=1.1.3
 # https://github.com/rclone/rclone/releases
 RCLONE_VERSION=1.73.4
+
 # https://github.com/nvm-sh/nvm/releases
 NVM_VERSION=0.40.3
 # https://nodejs.org/en/about/previous-releases#looking-for-latest-release-of-a-version-branch
