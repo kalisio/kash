@@ -453,6 +453,75 @@ install_helmfile() {
     cd ~-
 }
 
+# Returns 0 if a given git tag already exists, 1 otherwise.
+# Arg1: the tag name (eg. geokoder-1.2.0)
+# Arg2: the repository directory (defaults to current directory)
+git_tag_exists() {
+    local TAG_NAME="$1"
+    local REPO_DIR="${2:-.}"
+    git -C "$REPO_DIR" show-ref --tags "$TAG_NAME" --quiet
+}
+
+# Updates dependencies, lints and packages a Helm chart into a destination directory.
+# Arg1: the chart name (relative to the charts/ directory)
+# Arg2: the destination directory for the .tgz archive
+# Arg3: optional version override (if not set, uses version from Chart.yaml)
+# Arg4: the repository root (defaults to current directory)
+package_chart() {
+    local CHART="$1"
+    local DEST_DIR="$2"
+    local VERSION="${3:-}"
+    local REPO_ROOT="${4:-.}"
+
+    helm dependencies update "$REPO_ROOT/charts/$CHART"
+    helm lint "$REPO_ROOT/charts/$CHART"
+
+    if [[ -n "$VERSION" ]]; then
+        helm package "$REPO_ROOT/charts/$CHART" \
+            --destination "$DEST_DIR" \
+            --version "$VERSION"
+    else
+        helm package "$REPO_ROOT/charts/$CHART" \
+            --destination "$DEST_DIR"
+    fi
+}
+
+# Pushes all Helm chart archives from a directory to an OCI registry.
+# Arg1: the directory containing .tgz archives
+# Arg2: the OCI registry URL (without oci:// prefix)
+push_charts_oci() {
+    local CHARTS_DIR="$1"
+    local REGISTRY_URL="$2"
+
+    for TGZ in "$CHARTS_DIR"/*.tgz; do
+        helm push "$TGZ" "oci://$REGISTRY_URL"
+    done
+}
+
+# Pushes all Helm chart archives from a directory to an S3-compatible storage via rclone
+# and rebuilds the Helm repository index once at the end.
+# Arg1: the directory containing .tgz archives
+# Arg2: the rclone remote name (eg. kalisio_charts)
+# Arg3: the path to the rclone config file
+push_charts_s3() {
+    local CHARTS_DIR="$1"
+    local RCLONE_REMOTE="$2"
+    local RCLONE_CONF="$3"
+
+    # Upload all chart archives
+    rclone copy --config "$RCLONE_CONF" "$CHARTS_DIR" "$RCLONE_REMOTE:" \
+        --include "*.tgz"
+
+    # Rebuild index.yaml by merging with the existing one — once for all charts
+    rclone copy --config "$RCLONE_CONF" "$RCLONE_REMOTE:index.yaml" "$CHARTS_DIR" \
+        2>/dev/null || true
+    helm repo index "$CHARTS_DIR" --merge "$CHARTS_DIR/index.yaml"
+
+    # Upload the updated index.yaml only
+    rclone copy --config "$RCLONE_CONF" "$CHARTS_DIR/index.yaml" "$RCLONE_REMOTE:"
+}
+
+
 # Install rclone in ~/.local/bin
 # Arg1: a writable folder where to write downloaded files
 install_rclone() {
@@ -535,6 +604,17 @@ get_json_value() {
 
     ensure_yq
     yq --input-format=yaml --output-format=yaml ".$JSON_FIELD" "$JSON_SRC"
+}
+
+# Extract a value from a YAML file
+# Expected args:
+# 1. the yaml file
+# 2. the field to extract
+get_yaml_value() {
+    local YAML_SRC="$1"
+    local YAML_FIELD="$2"
+    ensure_yq
+    yq --input-format=yaml --output-format=yaml ".$YAML_FIELD" "$YAML_SRC"
 }
 
 # Extract version major from a version string.
