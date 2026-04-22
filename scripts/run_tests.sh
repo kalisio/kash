@@ -53,6 +53,11 @@ curl -OLsS "https://raw.githubusercontent.com/kalisio/kazarr/refs/heads/master/p
 [ "$(get_toml_value "$TMP_DIR/utils/pyproject.toml" 'project.name')" != "kazarr" ] && exit 1
 cd ~-
 
+curl -LsS "https://raw.githubusercontent.com/kalisio/kargo/master/charts/geokoder/Chart.yaml" \
+    -o "$TMP_DIR/Chart.yaml"
+[ "$(get_yaml_value "$TMP_DIR/Chart.yaml" 'name')" != "geokoder" ] && exit 1
+[ "$(get_yaml_value "$TMP_DIR/Chart.yaml" 'version')" != "1.2.0" ] && exit 1
+
 [ "$(get_semver_major "1" )" != "1" ] && exit 1
 [ "$(get_semver_major "1.5" )" != "1" ] && exit 1
 [ "$(get_semver_major "1.5.90" )" != "1" ] && exit 1
@@ -189,5 +194,26 @@ git_shallow_clone https://github.com/kalisio/k-icos.git "$TMP_DIR/k-icos.master"
 init_job_infos "$TMP_DIR/k-icos.master"
 
 [ "$(get_job_name)" != "k-icos" ] && exit 1
+
+## Helm charts helpers
+
+git_shallow_clone https://github.com/kalisio/kargo.git "$TMP_DIR/kargo.master"
+git -C "$TMP_DIR/kargo.master" fetch --tags
+
+
+# git_tag_exists
+git_tag_exists "geokoder-1.2.0" "$TMP_DIR/kargo.master" || exit 1
+git_tag_exists "inexistant-9.9.9" "$TMP_DIR/kargo.master" && exit 1
+
+# package_chart
+TMP_CHARTS=$(mktemp -d)
+
+package_chart "geokoder" "$TMP_CHARTS" "0.0.0-dev" "$TMP_DIR/kargo.master"
+[ ! -f "$TMP_CHARTS/geokoder-0.0.0-dev.tgz" ] && exit 1
+
+package_chart "geokoder" "$TMP_CHARTS" "" "$TMP_DIR/kargo.master"
+[ ! -f "$TMP_CHARTS/geokoder-1.2.0.tgz" ] && exit 1
+
+rm -rf "$TMP_CHARTS"
 
 exit 0
