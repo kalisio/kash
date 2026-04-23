@@ -512,7 +512,7 @@ push_charts_s3() {
     rclone copy --config "$RCLONE_CONF" "$CHARTS_DIR" "$RCLONE_REMOTE:" \
         --include "*.tgz"
 
-    # Rebuild index.yaml by merging with the existing one — once for all charts
+    # Rebuild index.yaml by merging with the existing one , once for all charts
     rclone copy --config "$RCLONE_CONF" "$RCLONE_REMOTE:index.yaml" "$CHARTS_DIR" \
         2>/dev/null || true
     helm repo index "$CHARTS_DIR" --merge "$CHARTS_DIR/index.yaml"
