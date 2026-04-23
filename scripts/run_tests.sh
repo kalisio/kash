@@ -208,12 +208,10 @@ git_tag_exists "inexistant-9.9.9" "$TMP_DIR/kargo.master" && exit 1
 # package_chart
 TMP_CHARTS=$(mktemp -d)
 
-package_chart "geokoder" "$TMP_CHARTS" "0.0.0-dev" "$TMP_DIR/kargo.master"
-[ ! -f "$TMP_CHARTS/geokoder-0.0.0-dev.tgz" ] && exit 1
-
 package_chart "geokoder" "$TMP_CHARTS" "" "$TMP_DIR/kargo.master"
 [ ! -f "$TMP_CHARTS/geokoder-1.2.0.tgz" ] && exit 1
 
-rm -rf "$TMP_CHARTS"
+package_chart "geokoder" "$TMP_CHARTS" "0.0.0-dev" "$TMP_DIR/kargo.master"
+[ ! -f "$TMP_CHARTS/geokoder-0.0.0-dev.tgz" ] && exit 1
 
 exit 0
