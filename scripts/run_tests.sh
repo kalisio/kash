@@ -214,4 +214,6 @@ package_chart "geokoder" "$TMP_CHARTS" "" "$TMP_DIR/kargo.master"
 package_chart "geokoder" "$TMP_CHARTS" "0.0.0-dev" "$TMP_DIR/kargo.master"
 [ ! -f "$TMP_CHARTS/geokoder-0.0.0-dev.tgz" ] && exit 1
 
+rm -rf "$TMP_CHARTS"
+
 exit 0
