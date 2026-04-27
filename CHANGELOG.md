@@ -8,8 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-  - added `publish_charts_s3` to publish several charts in a folder to s3
-  - added `publish_charts_oci` to publish several charts in a folder to harbor
+  - added `publish_charts_s3` to publish several charts from a folder to s3
+  - added `publish_charts_oci` to publish several charts from a folder to harbor
   - added `package_chart` to package chart Helm ( update, lint and package)
   - added `git_tag_exists` to know if a tag already exit or no
   - added `get_yaml_value` to extract values from YAML files
