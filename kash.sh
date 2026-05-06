@@ -136,7 +136,8 @@ HELM_VERSION=3.18.4
 HELMFILE_VERSION=1.1.3
 # https://github.com/rclone/rclone/releases
 RCLONE_VERSION=1.73.4
-
+# https://github.com/cli/cli/releases
+GH_VERSION=2.88.0
 # https://github.com/nvm-sh/nvm/releases
 NVM_VERSION=0.40.3
 # https://nodejs.org/en/about/previous-releases#looking-for-latest-release-of-a-version-branch
@@ -540,6 +541,36 @@ install_rclone() {
     cd ~-
 }
 
+# Install gh CLI in ~/.local/bin
+# Expected args:
+#  1. a writable folder where to write downloaded files
+install_gh() {
+    local DL_ROOT=$1
+    local DL_PATH="$DL_ROOT/gh"
+    if [ ! -d "$DL_PATH" ]; then
+        mkdir -p "$DL_PATH" && cd "$DL_PATH"
+        curl -OLsS https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz
+        curl -OLsS https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_checksums.txt
+        sha256sum --ignore-missing --quiet -c gh_${GH_VERSION}_checksums.txt
+        cd ~-
+    fi
+    cd "$DL_PATH"
+    tar xf gh_${GH_VERSION}_linux_amd64.tar.gz
+    cp gh_${GH_VERSION}_linux_amd64/bin/gh ~/.local/bin
+    cd ~-
+}
+
+# Call this to ensure gh is available
+ensure_gh() {
+    set +e
+    command -v gh >/dev/null 2>&1
+    local RC=$?
+    set -e
+    if [ "$RC" -ne 0 ]; then
+        mkdir -p "$TMP_DIR/dl"
+        install_gh "$TMP_DIR/dl"
+    fi
+}
 # Install listed requirements
 # Usage: install_reqs mongo7 nvm node16 yq
 install_reqs() {
