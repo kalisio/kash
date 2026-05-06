@@ -1638,7 +1638,13 @@ init_job_infos() {
     local JOB_VERSION
     JOB_VERSION=$(yq --output-format=yaml '.version' "$REPO_ROOT/package.json")
     local KRAWLER_VERSION
-    KRAWLER_VERSION=$(yq --output-format=yaml '.peerDependencies["@kalisio/krawler"]' "$REPO_ROOT/package.json")
+    # Prefer the explicit `krawler.version` field (used by krawler-ekosystem
+    # packages, where @kalisio/krawler is a workspace symlink). Fall back to
+    # peerDependencies["@kalisio/krawler"] for legacy single-job repos.
+    KRAWLER_VERSION=$(yq --output-format=yaml '.krawler.version' "$REPO_ROOT/package.json")
+    if [ "$KRAWLER_VERSION" = "null" ] || [ -z "$KRAWLER_VERSION" ]; then
+        KRAWLER_VERSION=$(yq --output-format=yaml '.peerDependencies["@kalisio/krawler"]' "$REPO_ROOT/package.json")
+    fi
 
     local GIT_TAG
     GIT_TAG=$(get_git_tag "$REPO_ROOT")
@@ -1745,6 +1751,102 @@ build_job() {
         -f "$DOCKERFILE" \
         -t "$IMAGE_NAME:$IMAGE_TAG" \
         "$REPO_DIR"
+
+    if [ "$PUBLISH" = true ]; then
+        docker push "$IMAGE_NAME:$IMAGE_TAG"
+    fi
+
+    docker logout "$REGISTRY_URL"
+
+    end_group "Building $IMAGE_NAME:$IMAGE_TAG ..."
+}
+
+# Build a krawler job container hosted in a krawler-ekosystem-style monorepo.
+# Unlike build_job (which owns the docker build invocation), this delegates the
+# docker build to the package's npm `build` (or `build:<variant>`) script — the
+# package's package.json knows which dockerfile to use and how to wire the
+# KRAWLER_TAG build-arg. This function only resolves the image name/tag from
+# the job infos, runs the package script with the right TAG env var, then
+# pushes if requested.
+#
+# Expected args
+# 1. the workspace root (used to derive the git tag/branch)
+# 2. the job package directory (eg. packages/krawler-meteofrance)
+# 3. the prefix to use before the image name (ie. kalisio, some_other_namespace, ...)
+# 4. the job variant to build (or empty if no variant — calls `build`, else `build:<variant>`)
+# 5. the registry url where to push the built container
+# 6. the registry username to use
+# 7. the file containing the registry password
+# 8. true to push the built container on the registry
+build_krawler_job() {
+    local WORKSPACE_ROOT="$1"
+    local JOB_DIR="$2"
+    local IMAGE_PREFIX="$3"
+    local JOB_VARIANT="$4"
+    local REGISTRY_URL="$5"
+    local REGISTRY_USERNAME="$6"
+    local REGISTRY_PASSWORD_FILE="$7"
+    local PUBLISH="$8"
+
+    ## Init job infos
+    ##
+    # NOTE: we read git state from the workspace (the job lives in a monorepo)
+    # but read package metadata from the job's package.json.
+    init_job_infos "$JOB_DIR"
+    # Override git tag/branch to come from the workspace, not the package dir.
+    JOB_INFOS[2]=$(get_git_tag "$WORKSPACE_ROOT")
+    JOB_INFOS[3]=$(get_git_branch "$WORKSPACE_ROOT")
+
+    local JOB
+    JOB=$(get_job_name)
+    local VERSION
+    VERSION=$(get_job_version)
+    local KRAWLER_VERSION
+    KRAWLER_VERSION=$(get_job_krawler_version)
+    local GIT_TAG
+    GIT_TAG=$(get_job_tag)
+
+    if [ -z "$GIT_TAG" ]; then
+        echo "About to build $JOB development version based on krawler $KRAWLER_VERSION..."
+    else
+        echo "About to build $JOB v$VERSION based on krawler $KRAWLER_VERSION..."
+    fi
+
+    ## Resolve image name + tag
+    ##
+    # The job package name is typically @kalisio/krawler-<job>, image name drops
+    # the org and uses just <job>.
+    local JOB_BARE_NAME="${JOB##*/}"
+    local IMAGE_NAME="$REGISTRY_URL/$IMAGE_PREFIX/$JOB_BARE_NAME"
+    local IMAGE_TAG="latest"
+    if [ -n "$GIT_TAG" ]; then
+        IMAGE_TAG="$VERSION"
+    fi
+    if [ -n "$JOB_VARIANT" ]; then
+        IMAGE_TAG="$JOB_VARIANT-$IMAGE_TAG"
+    fi
+
+    ## Run the package's build script
+    ##
+    local BUILD_SCRIPT="build"
+    if [ -n "$JOB_VARIANT" ]; then
+        BUILD_SCRIPT="build:$JOB_VARIANT"
+    fi
+
+    begin_group "Building $IMAGE_NAME:$IMAGE_TAG ..."
+
+    docker login --username "$REGISTRY_USERNAME" --password-stdin "$REGISTRY_URL" < "$REGISTRY_PASSWORD_FILE"
+
+    # The package script tags the image as <job-bare>:[<variant>-]<TAG>; we set
+    # TAG so that the produced image already matches our IMAGE_NAME suffix.
+    local LOCAL_TAG="latest"
+    if [ -n "$GIT_TAG" ]; then
+        LOCAL_TAG="$VERSION"
+    fi
+    (cd "$WORKSPACE_ROOT" && TAG="$LOCAL_TAG" pnpm --filter "$JOB" run "$BUILD_SCRIPT")
+
+    # Re-tag for the registry and push.
+    docker tag "$JOB_BARE_NAME:$IMAGE_TAG" "$IMAGE_NAME:$IMAGE_TAG"
 
     if [ "$PUBLISH" = true ]; then
         docker push "$IMAGE_NAME:$IMAGE_TAG"
