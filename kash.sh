@@ -140,6 +140,8 @@ RCLONE_VERSION=1.73.4
 GH_VERSION=2.88.0
 # https://github.com/nvm-sh/nvm/releases
 NVM_VERSION=0.40.3
+# https://github.com/pnpm/pnpm/releases
+PNPM_VERSION=10.11.0
 # https://nodejs.org/en/about/previous-releases#looking-for-latest-release-of-a-version-branch
 NODE20_VERSION=20.19
 NODE22_VERSION=22.21
@@ -571,6 +573,38 @@ ensure_gh() {
         install_gh "$TMP_DIR/dl"
     fi
 }
+
+# Install pnpm in ~/.local/bin
+# Expected args:
+#  1. a writable folder where to write downloaded files
+install_pnpm() {
+    local DL_ROOT=$1
+    local DL_PATH="$DL_ROOT/pnpm"
+    if [ ! -d "$DL_PATH" ]; then
+        mkdir -p "$DL_PATH" && cd "$DL_PATH"
+        curl -OLsS https://github.com/pnpm/pnpm/releases/download/v${PNPM_VERSION}/pnpm-linux-x64
+        curl -OLsS https://github.com/pnpm/pnpm/releases/download/v${PNPM_VERSION}/SHA256SUMS
+        grep "pnpm-linux-x64$" SHA256SUMS | sha256sum --check --quiet
+        cd ~-
+    fi
+    cd "$DL_PATH"
+    cp pnpm-linux-x64 ~/.local/bin/pnpm
+    chmod u+x ~/.local/bin/pnpm
+    cd ~-
+}
+
+# Call this to ensure pnpm is available
+ensure_pnpm() {
+    set +e
+    command -v pnpm >/dev/null 2>&1
+    local RC=$?
+    set -e
+    if [ "$RC" -ne 0 ]; then
+        mkdir -p "$TMP_DIR/dl"
+        install_pnpm "$TMP_DIR/dl"
+    fi
+}
+
 # Install listed requirements
 # Usage: install_reqs mongo7 nvm node16 yq
 install_reqs() {
@@ -854,6 +888,45 @@ git_shallow_clone() {
 
 ### Github
 ###
+
+# Creates a GitHub pull request on the given repository.
+# Skips silently if an open pull request already exists for the same
+# head/base combination (idempotent).
+# Requires gh CLI to be authenticated:
+#  - CI mode  : set GH_TOKEN environment variable
+#  - Dev mode : run 'gh auth login' beforehand
+# Expected args:
+#  1. full repository name (eg. kalisio/kargo)
+#  2. pull request title
+#  3. pull request body (supports multiline)
+#  4. source branch name
+#  5. target branch name (defaults to master)
+gh_create_pull_request() {
+    local REPO="$1"
+    local TITLE="$2"
+    local BODY="$3"
+    local HEAD="$4"
+    local BASE="${5:-master}"
+    ensure_gh
+    local PR_COUNT
+    PR_COUNT=$(gh pr list \
+        --repo "$REPO" \
+        --head "$HEAD" \
+        --base "$BASE" \
+        --state open \
+        --json number \
+        --jq 'length')
+    if [ "$PR_COUNT" -gt 0 ]; then
+        echo "-> Pull request already open for $HEAD → $BASE on $REPO, skipping"
+        return 0
+    fi
+    gh pr create \
+        --repo "$REPO" \
+        --title "$TITLE" \
+        --body "$BODY" \
+        --head "$HEAD" \
+        --base "$BASE"
+}
 
 # Deploys generated documentation using github pages system.
 # Arg1: the repository url
