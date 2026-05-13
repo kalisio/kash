@@ -584,7 +584,7 @@ install_pnpm() {
         mkdir -p "$DL_PATH" && cd "$DL_PATH"
         curl -OLsS https://github.com/pnpm/pnpm/releases/download/v${PNPM_VERSION}/pnpm-linux-x64
         curl -OLsS https://github.com/pnpm/pnpm/releases/download/v${PNPM_VERSION}/SHA256SUMS
-        grep "pnpm-linux-x64$" SHA256SUMS | sha256sum --check --quiet
+        grep "pnpm-linux-x64$" SHA256SUMS | tr -d '\r' | sha256sum --check --quiet
         cd ~-
     fi
     cd "$DL_PATH"
