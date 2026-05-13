@@ -573,26 +573,6 @@ ensure_gh() {
         install_gh "$TMP_DIR/dl"
     fi
 }
-
-# Install pnpm in ~/.local/bin
-# Expected args:
-#  1. a writable folder where to write downloaded files
-install_pnpm() {
-    local DL_ROOT=$1
-    local DL_PATH="$DL_ROOT/pnpm"
-    if [ ! -d "$DL_PATH" ]; then
-        mkdir -p "$DL_PATH" && cd "$DL_PATH"
-        curl -OLsS https://github.com/pnpm/pnpm/releases/download/v${PNPM_VERSION}/pnpm-linux-x64
-        curl -OLsS https://github.com/pnpm/pnpm/releases/download/v${PNPM_VERSION}/SHA256SUMS
-        grep "pnpm-linux-x64$" SHA256SUMS | tr -d '\r' | sha256sum --check --quiet
-        cd ~-
-    fi
-    cd "$DL_PATH"
-    cp pnpm-linux-x64 ~/.local/bin/pnpm
-    chmod u+x ~/.local/bin/pnpm
-    cd ~-
-}
-
 # Call this to ensure pnpm is available
 ensure_pnpm() {
     set +e
@@ -600,9 +580,13 @@ ensure_pnpm() {
     local RC=$?
     set -e
     if [ "$RC" -ne 0 ]; then
-        mkdir -p "$TMP_DIR/dl"
-        install_pnpm "$TMP_DIR/dl"
+        install_pnpm
     fi
+}
+# Install pnpm via npm
+# Node.js must be available
+install_pnpm() {
+    npm install -g pnpm@${PNPM_VERSION}
 }
 
 # Install listed requirements
