@@ -1875,7 +1875,12 @@ build_krawler_job() {
     # the org and uses just <job>.
     local JOB_BARE_NAME="${JOB##*/}"
     local IMAGE_NAME="$REGISTRY_URL/$IMAGE_PREFIX/$JOB_BARE_NAME"
-    local IMAGE_TAG="latest"
+    # On non-release builds (no git tag), the suffix used for the published
+    # image defaults to "latest" but can be overridden via JOB_DEFAULT_TAG
+    # (used by krawler-ekosystem to publish :dev during the transition with
+    # the legacy single-job CI). Release builds always use $VERSION.
+    local DEFAULT_TAG="${JOB_DEFAULT_TAG:-latest}"
+    local IMAGE_TAG="$DEFAULT_TAG"
     if [ -n "$GIT_TAG" ]; then
         IMAGE_TAG="$VERSION"
     fi
@@ -1896,7 +1901,7 @@ build_krawler_job() {
 
     # The package script tags the image as <job-bare>:[<variant>-]<TAG>; we set
     # TAG so that the produced image already matches our IMAGE_NAME suffix.
-    local LOCAL_TAG="latest"
+    local LOCAL_TAG="$DEFAULT_TAG"
     if [ -n "$GIT_TAG" ]; then
         LOCAL_TAG="$VERSION"
     fi
