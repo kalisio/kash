@@ -141,7 +141,7 @@ GH_VERSION=2.88.0
 # https://github.com/nvm-sh/nvm/releases
 NVM_VERSION=0.40.3
 # https://github.com/pnpm/pnpm/releases
-PNPM_VERSION=10.11.0
+PNPM_VERSION=10.28.2
 # https://nodejs.org/en/about/previous-releases#looking-for-latest-release-of-a-version-branch
 NODE20_VERSION=20.19
 NODE22_VERSION=22.21
