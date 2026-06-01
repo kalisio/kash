@@ -1177,6 +1177,225 @@ load_value_files() {
     done
 }
 
+
+### Secure SOPS decryption (new implementation)
+###
+
+# Initialize the cleanup mechanism for functions that create decrypted
+# Call this ONCE at the top of a user script.
+sops_init() {
+    # RAM location for the registry itself
+    local TMP_DIR="/tmp"
+    [ -d /dev/shm ] && [ -w /dev/shm ] && TMP_DIR="/dev/shm"
+
+    # Registry file, created once per sops_init call
+    SOPS_REGISTRY=$(mktemp -p "$TMP_DIR" ".sops-registry-XXXXXX")
+    chmod 600 "$SOPS_REGISTRY"
+    export SOPS_REGISTRY
+
+    # Traps installed in the shell that called sops_init
+    trap _sops_cleanup EXIT
+    trap '_sops_cleanup; trap - INT; kill -INT $$' INT
+    trap '_sops_cleanup; trap - TERM; kill -TERM $$' TERM
+}
+
+# Register a file in the persistent registry.
+# Works from subshells too.
+_sops_register() {
+    if [ -z "${SOPS_REGISTRY:-}" ]; then
+        echo "-> Error: sops_init must be called first" >&2
+        return 1
+    fi
+    echo "$1" >> "$SOPS_REGISTRY"
+}
+
+# Destroy every registered file then the registry itself.
+# Called by the trap installed by sops_init.
+_sops_cleanup() {
+    [ -z "${SOPS_REGISTRY:-}" ] && return 0
+    [ -f "$SOPS_REGISTRY" ] || return 0
+
+    local f
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        if [ -e "$f" ]; then
+            shred -u "$f" 2>/dev/null || rm -f "$f"
+        fi
+    done < "$SOPS_REGISTRY"
+
+    shred -u "$SOPS_REGISTRY" 2>/dev/null || rm -f "$SOPS_REGISTRY"
+    unset SOPS_REGISTRY
+}
+
+# Ensure the AGE key is available
+_sops_ensure_key() {
+    if [ -z "${SOPS_AGE_KEY-}" ] && [ -z "${SOPS_AGE_KEY_FILE-}" ]; then
+        export SOPS_AGE_KEY_FILE="${DEVELOPMENT_DIR:-}/age/keys.txt"
+    fi
+    if [ -n "${SOPS_AGE_KEY_FILE-}" ] && [ ! -f "$SOPS_AGE_KEY_FILE" ]; then
+        echo "-> Error: SOPS_AGE_KEY_FILE missing: $SOPS_AGE_KEY_FILE" >&2
+        return 1
+    fi
+}
+
+# Check that a name is a valid bash variable identifier
+_sops_valid_var_name() {
+    [[ "$1" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]
+}
+
+# Return a RAM location (/dev/shm) or /tmp as fallback
+_sops_tmpdir() {
+    if [ -d /dev/shm ] && [ -w /dev/shm ]; then
+        echo "/dev/shm"
+    else
+        echo "/tmp"
+    fi
+}
+
+# Check that sops_init has been called
+_sops_require_init() {
+    if [ -z "${SOPS_REGISTRY:-}" ]; then
+        echo "-> Error: sops_init must be called before this function" >&2
+        return 1
+    fi
+}
+
+# Load environment variables from N encrypted env files.
+# No file is ever written to disk.
+# Usage: load_env_files_secure file1.enc.env file2.enc.env
+load_env_files_secure() {
+    _sops_ensure_key || return 1
+
+    local ENC DECRYPTED SOPS_ERR
+    for ENC in "$@"; do
+        [ -f "$ENC" ] || continue
+
+        SOPS_ERR=$(mktemp)
+        if ! DECRYPTED=$(sops --decrypt "$ENC" 2>"$SOPS_ERR"); then
+            echo "-> Error: failed to decrypt $ENC" >&2
+            cat "$SOPS_ERR" >&2
+            rm -f "$SOPS_ERR"
+            return 1
+        fi
+        rm -f "$SOPS_ERR"
+
+        set -a
+        eval "$DECRYPTED"
+        local RC=$?
+        set +a
+        unset DECRYPTED
+
+        if [ $RC -ne 0 ]; then
+            echo "-> Error: invalid env format in $ENC" >&2
+            return $RC
+        fi
+    done
+}
+
+# Decrypt N .enc.value files to /dev/shm.
+# Usage:
+#   sops_init
+#   load_value_files_secure HARBOR_PWD.enc.value
+#   docker login --password-stdin < "$HARBOR_PWD"
+load_value_files_secure() {
+    _sops_ensure_key || return 1
+    _sops_require_init || return 1
+
+    local CREATED_FILES=() CREATED_VARS=()
+
+    _rollback() {
+        local f v
+        for f in "${CREATED_FILES[@]:-}"; do
+            [ -f "$f" ] && { shred -u "$f" 2>/dev/null || rm -f "$f"; }
+        done
+        for v in "${CREATED_VARS[@]:-}"; do
+            unset "$v"
+        done
+    }
+
+    local ENC BASENAME VAR_NAME DEC SOPS_ERR
+    for ENC in "$@"; do
+        [ -f "$ENC" ] || continue
+
+        BASENAME=$(basename "$ENC")
+        VAR_NAME="${BASENAME%%.*}"
+
+        if ! _sops_valid_var_name "$VAR_NAME"; then
+            echo "-> Error: invalid variable name '$VAR_NAME' from $ENC" >&2
+            echo "   Variable names must match [A-Za-z_][A-Za-z0-9_]*" >&2
+            _rollback
+            return 1
+        fi
+
+        DEC=$(mktemp -p "$(_sops_tmpdir)" "value.XXXXXX")
+        chmod 600 "$DEC"
+
+        SOPS_ERR=$(mktemp)
+        if ! sops --decrypt --output "$DEC" "$ENC" 2>"$SOPS_ERR"; then
+            echo "-> Error: failed to decrypt $ENC" >&2
+            cat "$SOPS_ERR" >&2
+            rm -f "$SOPS_ERR" "$DEC"
+            _rollback
+            return 1
+        fi
+        rm -f "$SOPS_ERR"
+
+        declare -gx "$VAR_NAME"="$DEC"
+        _sops_register "$DEC"
+        CREATED_FILES+=("$DEC")
+        CREATED_VARS+=("$VAR_NAME")
+    done
+}
+
+# Decrypt a file to RAM or to a precise path.
+# Returns the path of the decrypted file on stdout.
+# Requires sops_init to be called first.
+# Usage:
+#   sops_init
+#
+#   # RAM mode (path doesn't matter)
+#   KUBE=$(decrypt_file kubeconfig.enc.yaml)
+#   kubectl --kubeconfig "$KUBE" ...
+#
+#   # Precise path mode (Helm, helmfile, rclone)
+#   decrypt_file rclone.enc.conf "$NAMESPACE_DIR/rclone.dec.conf"
+decrypt_file() {
+    _sops_ensure_key || return 1
+    _sops_require_init || return 1
+
+    local ENC="$1"
+    local OUT="${2:-}"
+
+    if [ ! -f "$ENC" ]; then
+        echo "-> Error: $ENC not found" >&2
+        return 1
+    fi
+
+    if [ -z "$OUT" ]; then
+        OUT=$(mktemp -p "$(_sops_tmpdir)" "decrypted.XXXXXX")
+    else
+        local PARENT
+        PARENT=$(dirname "$OUT")
+        [ -d "$PARENT" ] || mkdir -p "$PARENT"
+    fi
+
+    local SOPS_ERR
+    SOPS_ERR=$(mktemp)
+    if ! sops --decrypt --output "$OUT" "$ENC" 2>"$SOPS_ERR"; then
+        echo "-> Error: failed to decrypt $ENC" >&2
+        cat "$SOPS_ERR" >&2
+        rm -f "$SOPS_ERR" "$OUT" 2>/dev/null
+        return 1
+    fi
+    rm -f "$SOPS_ERR"
+
+    chmod 600 "$OUT"
+    _sops_register "$OUT"
+    echo "$OUT"
+}
+
+
+
 ### Kalisio
 ###
 
