@@ -12,6 +12,12 @@
 ###  - gitlab ci: https://docs.gitlab.com/ee/ci/variables/predefined_variables.html
 ###  - travis ci: https://docs.travis-ci.com/user/environment-variables/#default-environment-variables
 
+
+if [[ -n ${KASH_LOADED:-} ]]; then
+    return 0 2>/dev/null || exit 0
+fi
+KASH_LOADED=1
+
 ### Host detection
 ###
 
@@ -1347,6 +1353,36 @@ load_value_files_secure() {
     done
 }
 
+#
+# Decrypt a file directly to stdout, for piping to a command that accepts
+# the secret via stdin (e.g. docker login --password-stdin).
+#
+# No file is ever written to disk, no temporary file in RAM, no cleanup needed.
+# Does NOT require sops_init.
+#
+# Usage:
+#   decrypt_stdout password.enc.value | docker login --password-stdin
+#
+decrypt_stdout() {
+    _sops_ensure_key || return 1
+
+    local ENC="$1"
+
+    if [ ! -f "$ENC" ]; then
+        echo "-> Error: $ENC not found" >&2
+        return 1
+    fi
+
+    local SOPS_ERR
+    SOPS_ERR=$(mktemp)
+    if ! sops --decrypt "$ENC" 2>"$SOPS_ERR"; then
+        echo "-> Error: failed to decrypt $ENC" >&2
+        cat "$SOPS_ERR" >&2
+        rm -f "$SOPS_ERR"
+        return 1
+    fi
+    rm -f "$SOPS_ERR"
+}
 # Decrypt a file to RAM or to a precise path.
 # Returns the path of the decrypted file on stdout.
 # Requires sops_init to be called first.
