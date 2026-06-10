@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   
 ### Changed
 
+  - `build_krawler_job` now names container images with k-<job> where job is extracted from package name
   - kubectl bumped to `1.28.13`
   - helm bumped to `3.14.4`
   - helmfile bumped to `0.167.1`
