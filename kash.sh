@@ -2126,10 +2126,10 @@ build_krawler_job() {
 
     ## Resolve image name + tag
     ##
-    # The job package name is typically @something/blabla-krawler-<job>, image name drops
-    # everything and uses just k-<job>.
-    local JOB_BARE_NAME="k-${JOB##*krawler-}"
-    local IMAGE_NAME="$REGISTRY_URL/$IMAGE_PREFIX/$JOB_BARE_NAME"
+    # The job package name is typically @kalisio/krawler-<job>, image name drops
+    # the org and uses just <job>.
+    local JOB_BARE_NAME="${JOB##*/}"
+    local IMAGE_NAME="$REGISTRY_URL/$IMAGE_PREFIX/k-${JOB_BARE_NAME##*krawler-}"
     # On non-release builds (no git tag), the suffix used for the published
     # image defaults to "latest" but can be overridden via JOB_DEFAULT_TAG
     # (used by krawler-ekosystem to publish :dev during the transition with
