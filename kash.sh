@@ -1126,6 +1126,34 @@ slack_e2e_report() {
 
     slack_color_log "$SLACK_WEBHOOK" "$MESSAGE" "$COLOR"
 }
+# 
+### Centralized trap management
+# 
+# Register a function to be called on script exit (EXIT, INT, TERM).
+# Multiple functions can be registered, they will all be called in order.
+# Usage:
+#   my_cleanup() { ... }
+#   add_function_to_trap my_cleanup
+
+KASH_TRAP_FUNCTIONS=()
+
+add_function_to_trap() {
+    KASH_TRAP_FUNCTIONS+=("$1")
+
+    # Install the trap on first registration
+    if [ ${#KASH_TRAP_FUNCTIONS[@]} -eq 1 ]; then
+        trap _kash_run_trap_functions EXIT
+        trap '_kash_run_trap_functions; trap - INT; kill -INT $$' INT
+        trap '_kash_run_trap_functions; trap - TERM; kill -TERM $$' TERM
+    fi
+}
+
+_kash_run_trap_functions() {
+    local fn
+    for fn in "${KASH_TRAP_FUNCTIONS[@]}"; do
+        "$fn" || true
+    done
+}
 
 ### SOPS
 ###
@@ -1205,36 +1233,31 @@ load_value_files() {
 ### Secure SOPS decryption (new implementation)
 ###
 
-# Initialize the cleanup mechanism for functions that create decrypted
-# Call this ONCE at the top of a user script.
-sops_init() {
-    # RAM location for the registry itself
+# Internal SOPS init: create the registry and register cleanup
+_sops_init() {
     local TMP_DIR="/tmp"
     [ -d /dev/shm ] && [ -w /dev/shm ] && TMP_DIR="/dev/shm"
 
-    # Registry file, created once per sops_init call
     SOPS_REGISTRY=$(mktemp -p "$TMP_DIR" ".sops-registry-XXXXXX")
     chmod 600 "$SOPS_REGISTRY"
     export SOPS_REGISTRY
 
-    # Traps installed in the shell that called sops_init
-    trap _sops_cleanup EXIT
-    trap '_sops_cleanup; trap - INT; kill -INT $$' INT
-    trap '_sops_cleanup; trap - TERM; kill -TERM $$' TERM
+    add_function_to_trap _sops_cleanup
+}
+
+# Ensure SOPS cleanup mechanism is ready (idempotent)
+ensure_sops_init() {
+    if [ -z "${SOPS_REGISTRY:-}" ]; then
+        _sops_init
+    fi
 }
 
 # Register a file in the persistent registry.
-# Works from subshells too.
 _sops_register() {
-    if [ -z "${SOPS_REGISTRY:-}" ]; then
-        echo "-> Error: sops_init must be called first" >&2
-        return 1
-    fi
     echo "$1" >> "$SOPS_REGISTRY"
 }
 
 # Destroy every registered file then the registry itself.
-# Called by the trap installed by sops_init.
 _sops_cleanup() {
     [ -z "${SOPS_REGISTRY:-}" ] && return 0
     [ -f "$SOPS_REGISTRY" ] || return 0
@@ -1276,14 +1299,6 @@ _sops_tmpdir() {
     fi
 }
 
-# Check that sops_init has been called
-_sops_require_init() {
-    if [ -z "${SOPS_REGISTRY:-}" ]; then
-        echo "-> Error: sops_init must be called before this function" >&2
-        return 1
-    fi
-}
-
 # Load environment variables from N encrypted env files.
 # No file is ever written to disk.
 # Usage: load_env_files_secure file1.enc.env file2.enc.env
@@ -1317,13 +1332,13 @@ load_env_files_secure() {
 }
 
 # Decrypt N .enc.value files to /dev/shm.
+# Triggers ensure_sops_init automatically.
 # Usage:
-#   sops_init
 #   load_value_files_secure HARBOR_PWD.enc.value
 #   docker login --password-stdin < "$HARBOR_PWD"
 load_value_files_secure() {
     _sops_ensure_key || return 1
-    _sops_require_init || return 1
+    ensure_sops_init
 
     local CREATED_FILES=() CREATED_VARS=()
 
@@ -1375,14 +1390,12 @@ load_value_files_secure() {
 # Decrypt a file directly to stdout, for piping to a command that accepts
 # the secret via stdin (e.g. docker login --password-stdin).
 #
-# No file is ever written to disk, no temporary file in RAM, no cleanup needed.
-# Does NOT require sops_init.
-#
 # Usage:
 #   decrypt_stdout password.enc.value | docker login --password-stdin
 #
 decrypt_stdout() {
     _sops_ensure_key || return 1
+    
 
     local ENC="$1"
 
@@ -1403,10 +1416,10 @@ decrypt_stdout() {
 }
 # Decrypt a file to RAM or to a precise path.
 # Returns the path of the decrypted file on stdout.
-# Requires sops_init to be called first.
-# Usage:
-#   sops_init
+# Triggers ensure_sops_init automatically.
 #
+# Usage:
+
 #   # RAM mode (path doesn't matter)
 #   KUBE=$(decrypt_file kubeconfig.enc.yaml)
 #   kubectl --kubeconfig "$KUBE" ...
@@ -1415,7 +1428,7 @@ decrypt_stdout() {
 #   decrypt_file rclone.enc.conf "$NAMESPACE_DIR/rclone.dec.conf"
 decrypt_file() {
     _sops_ensure_key || return 1
-    _sops_require_init || return 1
+    ensure_sops_init
 
     local ENC="$1"
     local OUT="${2:-}"
