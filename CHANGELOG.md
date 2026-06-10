@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+  - added `install_micromamba` to install Micromamba
+  - added `setup_micromamba_env` to create Micromamba Python environment and install dependencies
+  - added `run_pytest` to run lint and tests with coverage in Python Micromamba environment
+  - added `run_python_lib_tests` to run tests and publish code coverage to SonarQube
   - added `publish_charts_s3` to publish several charts from a folder to s3
   - added `publish_charts_oci` to publish several charts from a folder to harbor
   - added `package_chart` to package chart Helm ( update, lint and package)
