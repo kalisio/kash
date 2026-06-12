@@ -1194,51 +1194,9 @@ dec2enc() {
     echo "$ENC"
 }
 
-# Loads environment variables from encrypted env files
-# Usage: load_env_files /path/to/file1.enc.env /path/to/file2.enc.env /path/to/file3.enc.env
-# NOTE: requires SOPS_AGE_KEY or SOPS_AGE_KEY_FILE to be defined. If not, will defaults to $DEVELOPMENT_DIR/age/keys.txt
-load_env_files() {
-    # Use developer key unless one of SOPS_AGE_KEY or SOPS_AGE_KEY_FILE is already defined (eg. CI)
-    if [ -z "${SOPS_AGE_KEY-}" ] && [ -z "${SOPS_AGE_KEY_FILE-}" ]; then
-        export SOPS_AGE_KEY_FILE="$DEVELOPMENT_DIR/age/keys.txt"
-    fi
-
-    for ENC in "$@"; do
-        if [ -f "$ENC" ]; then
-            local DEC
-            DEC="$(enc2dec "$ENC")"
-            sops --decrypt --output "$DEC" "$ENC"
-            set -a && . "$DEC" && set +a
-        fi
-    done
-}
-
-# Decrypt files containing secrets and define an environment variable pointing on the decrypted filename
-# Usage: load_value_files /path/to/FOO_PASSWORD.enc.value /path/to/BLAH_SECRET.enc.value
-# Will decrypt the files and define FOO_PASSWORD to the decrypted filename. It can be used to feed the decrypted value from stdin.
-load_value_files() {
-    # Use developer key unless one of SOPS_AGE_KEY or SOPS_AGE_KEY_FILE is already defined (eg. CI)
-    if [ -z "${SOPS_AGE_KEY-}" ] && [ -z "${SOPS_AGE_KEY_FILE-}" ]; then
-        export SOPS_AGE_KEY_FILE="$DEVELOPMENT_DIR/age/keys.txt"
-    fi
-
-    for ENC in "$@"; do
-        if [ -f "$ENC" ]; then
-            local DEC
-            DEC="$(enc2dec "$ENC")"
-            sops --decrypt --output "$DEC" "$ENC"
-
-            local BASENAME
-            BASENAME=$(basename "$DEC")
-            local VAR_NAME="${BASENAME%%.*}"
-            # Define (and export) $filename as env var with path to decrypted file as value
-            declare -gx "$VAR_NAME"="$DEC"
-        fi
-    done
-}
 
 
-### Secure SOPS decryption (new implementation)
+### Secure SOPS decryption 
 ###
 
 # Internal SOPS init: create the registry and register cleanup
@@ -1309,8 +1267,8 @@ _sops_tmpdir() {
 
 # Load environment variables from N encrypted env files.
 # No file is ever written to disk.
-# Usage: load_env_files_secure file1.enc.env file2.enc.env
-load_env_files_secure() {
+# Usage: load_env_files file1.enc.env file2.enc.env
+load_env_files() {
     _sops_ensure_key || return 1
 
     local ENC DECRYPTED SOPS_ERR
@@ -1336,61 +1294,6 @@ load_env_files_secure() {
             echo "-> Error: invalid env format in $ENC" >&2
             return $RC
         fi
-    done
-}
-
-# Decrypt N .enc.value files to /dev/shm.
-# Triggers ensure_sops_init automatically.
-# Usage:
-#   load_value_files_secure HARBOR_PWD.enc.value
-#   docker login --password-stdin < "$HARBOR_PWD"
-load_value_files_secure() {
-    _sops_ensure_key || return 1
-    ensure_sops_init
-
-    local CREATED_FILES=() CREATED_VARS=()
-
-    _rollback() {
-        local f v
-        for f in "${CREATED_FILES[@]:-}"; do
-            [ -f "$f" ] && { shred -u "$f" 2>/dev/null || rm -f "$f"; }
-        done
-        for v in "${CREATED_VARS[@]:-}"; do
-            unset "$v"
-        done
-    }
-
-    local ENC BASENAME VAR_NAME DEC SOPS_ERR
-    for ENC in "$@"; do
-        [ -f "$ENC" ] || continue
-
-        BASENAME=$(basename "$ENC")
-        VAR_NAME="${BASENAME%%.*}"
-
-        if ! _sops_valid_var_name "$VAR_NAME"; then
-            echo "-> Error: invalid variable name '$VAR_NAME' from $ENC" >&2
-            echo "   Variable names must match [A-Za-z_][A-Za-z0-9_]*" >&2
-            _rollback
-            return 1
-        fi
-
-        DEC=$(mktemp -p "$(_sops_tmpdir)" "value.XXXXXX")
-        chmod 600 "$DEC"
-
-        SOPS_ERR=$(mktemp)
-        if ! sops --decrypt --output "$DEC" "$ENC" 2>"$SOPS_ERR"; then
-            echo "-> Error: failed to decrypt $ENC" >&2
-            cat "$SOPS_ERR" >&2
-            rm -f "$SOPS_ERR" "$DEC"
-            _rollback
-            return 1
-        fi
-        rm -f "$SOPS_ERR"
-
-        declare -gx "$VAR_NAME"="$DEC"
-        _sops_register "$DEC"
-        CREATED_FILES+=("$DEC")
-        CREATED_VARS+=("$VAR_NAME")
     done
 }
 
