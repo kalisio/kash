@@ -1128,14 +1128,21 @@ slack_e2e_report() {
 }
 # 
 ### Centralized trap management
-# 
+#
 # Register a function to be called on script exit (EXIT, INT, TERM).
 # Multiple functions can be registered, they will all be called in order.
+# The original script exit code is preserved in KASH_EXIT_CODE so that
+# registered functions can use it (instead of $? which gets overwritten
+# by each function execution).
+#
 # Usage:
-#   my_cleanup() { ... }
+#   my_cleanup() {
+#       echo "Script exited with code $KASH_EXIT_CODE"
+#   }
 #   add_function_to_trap my_cleanup
 
 KASH_TRAP_FUNCTIONS=()
+KASH_EXIT_CODE=0
 
 add_function_to_trap() {
     KASH_TRAP_FUNCTIONS+=("$1")
@@ -1149,6 +1156,7 @@ add_function_to_trap() {
 }
 
 _kash_run_trap_functions() {
+    KASH_EXIT_CODE=$?    # Capture immediately, before anything else can change it
     local fn
     for fn in "${KASH_TRAP_FUNCTIONS[@]}"; do
         "$fn" || true
