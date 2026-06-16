@@ -602,7 +602,7 @@ install_micromamba() {
     # Mandatory for micromamba to work post installation
     export MAMBA_ROOT_PREFIX="$PREFIX_LOCATION"
     export BIN_FOLDER="${BIN_FOLDER:-${HOME}/.local/bin}"
-    export INIT_YES="no" 
+    export INIT_YES="no"
     export CONDA_FORGE_YES="yes"
 
     curl -Lso /tmp/install_micromamba.sh https://micro.mamba.pm/install.sh
@@ -1126,7 +1126,7 @@ slack_e2e_report() {
 
     slack_color_log "$SLACK_WEBHOOK" "$MESSAGE" "$COLOR"
 }
-# 
+#
 ### Centralized trap management
 #
 # Register a function to be called on script exit (EXIT, INT, TERM).
@@ -1196,7 +1196,7 @@ dec2enc() {
 
 
 
-### Secure SOPS decryption 
+### Secure SOPS decryption
 ###
 
 # Internal SOPS init: create the registry and register cleanup
@@ -1306,7 +1306,7 @@ load_env_files() {
 #
 decrypt_stdout() {
     _sops_ensure_key || return 1
-    
+
 
     local ENC="$1"
 
@@ -1828,6 +1828,7 @@ run_lib_tests () {
     local RUN_SONAR="$2"
     local NODE_VER="$3"
     local MONGO_VER="$4"
+    local SKIP_INSTALL="${5:-false}"
     local WORKSPACE_DIR
     WORKSPACE_DIR="$(dirname "$ROOT_DIR")"
 
@@ -1861,7 +1862,9 @@ run_lib_tests () {
     if PM=$(get_node_package_manager "$ROOT_DIR"); then
         echo "Detected pacakge manager: $PM"
         echo "Installing and testing the library"
-        $PM install
+        if [ "$SKIP_INSTALL" != "true" ]; then
+            $PM install
+        fi
         $PM test
     fi
 
@@ -2533,7 +2536,7 @@ setup_micromamba_env() {
     export MAMBA_ROOT_PREFIX="${MAMBA_ROOT_PREFIX:-${HOME}/micromamba}"
 
     local env_name="$1"
-    local env_file="${2:-environment.yml}" 
+    local env_file="${2:-environment.yml}"
     local auto_activate="${3:-false}"
 
     if [ -z "$env_name" ]; then
@@ -2551,7 +2554,7 @@ setup_micromamba_env() {
 
     if [ $? -eq 0 ]; then
         echo "Environment '$env_name' created and configured successfully !"
-        
+
         if [ "$auto_activate" = "true" ] || [ "$auto_activate" = "1" ]; then
         echo "Automatic activation of the environment '$env_name'..."
         eval "$(micromamba shell hook --shell bash)"
