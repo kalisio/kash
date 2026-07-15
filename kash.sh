@@ -2444,26 +2444,30 @@ run_package_tests() {
 # Push every job image this run built. For each package under packages/<prefix>*,
 # derive its image tags from the very `build*` scripts that `pnpm run "/^build/"`
 # executed (single source of truth with the build):
-#   build           -> <registry>/<namespace>/<pkg>:<IMAGE_TAG>
-#   build:<variant> -> <registry>/<namespace>/<pkg>:<variant>-<IMAGE_TAG>
-# so any variant naming (incl. a frequency suffix, eg. paquetobs-observations-6m)
-# is preserved exactly. Only images that exist locally (ie. were built by the
-# selected filter) are pushed. Assumes the caller is already `docker login`-ed.
+#   build           -> <registry>/<namespace>/<image>:<IMAGE_TAG>
+#   build:<variant> -> <registry>/<namespace>/<image>:<variant>-<IMAGE_TAG>
+# where <image> = <IMAGE_PREFIX> + package name stripped of <prefix>, since the
+# image name usually differs from the package name (eg. package krawler-meteofrance
+# -> image k-meteofrance). Any variant naming (incl. a frequency suffix, eg.
+# paquetobs-observations-6m) is preserved exactly. Only images that exist locally
+# (ie. were built by the selected filter) are pushed. Assumes the caller is already
+# `docker login`-ed.
 # Args:
 #   1. ROOT_DIR       2. package prefix (eg. krawler-)
 #   3. registry URL   4. image namespace (eg. kalisio)
-#   5. IMAGE_TAG
+#   5. IMAGE_TAG      6. image name prefix (eg. k-)
 publish_job_images() {
     local ROOT="$1"
     local PREFIX="$2"
     local REGISTRY="$3"
     local NAMESPACE="$4"
     local IMAGE_TAG="$5"
+    local IMAGE_PREFIX="$6"
     local D PKG IMAGE KEY ITAG
     for D in "$ROOT"/packages/"$PREFIX"*/; do
         [ -f "$D/package.json" ] || continue
         PKG=$(basename "$D")
-        IMAGE="$REGISTRY/$NAMESPACE/$PKG"
+        IMAGE="$REGISTRY/$NAMESPACE/${IMAGE_PREFIX}${PKG#"$PREFIX"}"
         while IFS= read -r KEY; do
             if [ "$KEY" = "build" ]; then
                 ITAG="$IMAGE_TAG"
