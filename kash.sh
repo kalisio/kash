@@ -2020,7 +2020,7 @@ build_job() {
 
 # Build a krawler job container hosted in a krawler-ekosystem-style monorepo.
 # Unlike build_job (which owns the docker build invocation), this delegates the
-# docker build to the package's npm `build` (or `build:<variant>`) script — the
+# docker build to the package's npm `build` (or `build:<variant>`) script  the
 # package's package.json knows which dockerfile to use and how to wire the
 # KRAWLER_TAG build-arg. This function only resolves the image name/tag from
 # the job infos, runs the package script with the right TAG env var, then
@@ -2030,7 +2030,7 @@ build_job() {
 # 1. the workspace root (used to derive the git tag/branch)
 # 2. the job package directory (eg. packages/krawler-meteofrance)
 # 3. the prefix to use before the image name (ie. kalisio, some_other_namespace, ...)
-# 4. the job variant to build (or empty if no variant — calls `build`, else `build:<variant>`)
+# 4. the job variant to build (or empty if no variant  calls `build`, else `build:<variant>`)
 # 5. the registry url where to push the built container
 # 6. the registry username to use
 # 7. the file containing the registry password
@@ -2323,12 +2323,23 @@ resolve_build_filter_and_tag() {
         local TARGET_REF
         TARGET_REF=$(get_diff_base_ref "$ROOT" "$MAIN_BRANCH")
         # Always scope to packages/<prefix>* so non-service workspace projects
-        # (docs/, examples/, the root) — which may also have a 'build' script —
-        # are never built here.
+        # (docs/, examples/, the root) which may also have a 'build' script are never built here.
         if [ -z "$TARGET_REF" ] || should_rebuild_all_packages "$ROOT" "$TARGET_REF" "$@"; then
             FILTER="--filter=./packages/${PREFIX}*"
         else
-            FILTER="--filter=./packages/${PREFIX}*[${TARGET_REF}]"
+            # Only the <prefix> packages changed since TARGET_REF, as an explicit
+            # per-package filter list. NB: pnpm's "path-glob[<since>]" form does NOT
+            # work the [<ref>] is parsed as a glob character class, not a
+            # changed-since selector, so change detection is silently bypassed.
+            local PKG
+            while IFS= read -r PKG; do
+                case "$PKG" in
+                    "$PREFIX"*) FILTER="$FILTER --filter=./packages/$PKG" ;;
+                esac
+            done < <(get_changed_packages "$ROOT" "$TARGET_REF")
+            FILTER="${FILTER# }"
+            # No matching package changed: select nothing (pnpm exits cleanly).
+            [ -n "$FILTER" ] || FILTER="--filter=./packages/__none__"
         fi
     fi
 
@@ -2345,7 +2356,7 @@ resolve_build_filter_and_tag() {
 
 # Push the images this run just built. For each package under packages/<prefix>*,
 # if its <namespace>/<name>:<IMAGE_TAG> image exists locally (ie. it was built),
-# push it — plus the short-tag alias on the default node/debian combo. Assumes
+# push it  plus the short-tag alias on the default node/debian combo. Assumes
 # the caller is already `docker login`-ed.
 # Args:
 #   1. ROOT_DIR       2. package prefix        3. registry URL
