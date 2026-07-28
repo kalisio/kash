@@ -2364,6 +2364,8 @@ resolve_build_filter_and_tag() {
 #   5. IMAGE_TAG      6. SHORT_TAG
 #   7. node version   8. debian version
 #   9. default node   10. default debian
+#   11. image name prefix (optional; prepended to the stripped package name,
+#       empty by default so behaviour is unchanged for existing callers)
 publish_images() {
     local ROOT="$1"
     local PREFIX="$2"
@@ -2375,11 +2377,12 @@ publish_images() {
     local DEBIAN_VER="$8"
     local DEF_NODE="$9"
     local DEF_DEBIAN="${10}"
+    local IMAGE_PREFIX="${11:-}"
     local D PKG IMAGE_NAME
     for D in "$ROOT"/packages/"$PREFIX"*/; do
         [ -d "$D" ] || continue
         PKG=$(basename "$D")
-        IMAGE_NAME="$REGISTRY/$NAMESPACE/${PKG#"$PREFIX"}"
+        IMAGE_NAME="$REGISTRY/$NAMESPACE/${IMAGE_PREFIX}${PKG#"$PREFIX"}"
 
         # Only publish images that this run actually built.
         docker image inspect "$IMAGE_NAME:$IMAGE_TAG" > /dev/null 2>&1 || continue
