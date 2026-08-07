@@ -2913,20 +2913,54 @@ setup_micromamba_env() {
 }
 
 # Setup a Python environment using uv and optionally activate it
-# Expected args:
-# 1. whether to automatically activate the environment (default: false)
-# 2. the Python version to pin (optional)
+# Optional args:
+# -a --auto-activate: whether to automatically activate the environment (default: false)
+# -p --py-version PYTHON_VERSION: the Python version to pin (optional)
+# -g --group GROUP_NAME: the dependency group to include. Can be "all" or a specific group name (optional)
 setup_python_env() {
-    local auto_activate="${1:-false}"
-    local py_version="$2"
+    local auto_activate="false"
+    local py_version=""
+    local group=""
+
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            -a|--auto-activate) 
+                auto_activate="true"
+                ;;
+            
+            -p|--py-version) 
+                py_version="$2"
+                shift
+                ;;
+                
+            -g|--group) 
+                group="$2"
+                shift
+                ;;
+                
+            *)
+                ;;
+        esac
+        shift
+    done
 
     if [ -n "$py_version" ]; then
         echo "Pinning Python version to $py_version..."
         uv python pin "$py_version"
     fi
 
+    local sync_cmd=(uv sync)
+
+    if [ "$group" = "all" ]; then
+        echo "Including all dependency groups..."
+        sync_cmd+=(--all-groups)
+    elif [ -n "$group" ]; then
+        echo "Including dependency group: '$group'..."
+        sync_cmd+=(--group "$group")
+    fi
+
     echo "Syncing environment with uv..."
-    if uv sync; then
+    if "${sync_cmd[@]}"; then
         echo "Environment synced successfully!"
 
         if [ "$auto_activate" = "true" ] || [ "$auto_activate" = "1" ]; then
