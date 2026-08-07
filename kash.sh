@@ -613,6 +613,18 @@ install_micromamba() {
     eval "$("$MAMBA_EXE" shell hook -s bash)"
 }
 
+# Install uv
+# Expected args:
+#  1. a writable folder where to write downloaded files
+install_uv() {
+    local DL_ROOT=$1
+    local DL_PATH="$DL_ROOT/uv"
+
+    mkdir -p "$DL_PATH" && cd "$DL_PATH"
+    curl -OLsS https://astral.sh/uv/install.sh
+    bash ./install.sh
+}
+
 # Install listed requirements
 # Usage: install_reqs mongo7 nvm node16 yq
 install_reqs() {
@@ -2900,6 +2912,33 @@ setup_micromamba_env() {
     fi
 }
 
+# Setup a Python environment using uv and optionally activate it
+# Expected args:
+# 1. whether to automatically activate the environment (default: false)
+# 2. the Python version to pin (optional)
+setup_python_env() {
+    local auto_activate="${1:-false}"
+    local py_version="$2"
+
+    if [ -n "$py_version" ]; then
+        echo "Pinning Python version to $py_version..."
+        uv python pin "$py_version"
+    fi
+
+    echo "Syncing environment with uv..."
+    if uv sync; then
+        echo "Environment synced successfully!"
+
+        if [ "$auto_activate" = "true" ] || [ "$auto_activate" = "1" ]; then
+            echo "Automatic activation of the environment..."
+            source .venv/bin/activate
+        fi
+    else
+        echo "Error occurred while syncing the environment."
+        return 1
+    fi
+}
+
 # Run ruff checks and pytest with coverage for a python project
 # Expected args:
 # ... additional arguments to pass to pytest (eg. test file or folder, test markers ...)
@@ -2950,4 +2989,51 @@ run_python_lib_tests() {
     if [ "$RUN_SONAR" = true ]; then
         cd "$ROOT_DIR" && sonar-scanner
     fi
+}
+
+# Build and publish a python library (uv must be installed)
+# Expected arguments:
+# 1. Root directory of the python project
+# 2. true to publish the built artifacts to a repository (default: false)
+# 3. Publish URL (e.g., Nexus repository URL) (Optional)
+# 
+# NOTE: Authentication must be provided via CI environment variables:
+# - For token auth: export UV_PUBLISH_TOKEN="your_token"
+# - For basic auth: export UV_PUBLISH_USERNAME="user" and UV_PUBLISH_PASSWORD="password"
+build_and_publish_python_lib() {
+    local ROOT_DIR="$1"
+    local PUBLISH="${2:-false}"
+    local PUBLISH_URL="$3"
+
+    cd "$ROOT_DIR" || return 1
+
+    local LIB
+    LIB=$(get_toml_value "$ROOT_DIR/pyproject.toml" "project.name")
+    local VERSION
+    VERSION=$(get_toml_value "$ROOT_DIR/pyproject.toml" "project.version")
+
+    echo "Building $LIB v$VERSION"
+
+    if ! uv build; then
+        echo "Error: 'uv build' failed."
+        return 1
+    fi
+
+    local publish_cmd=(uv publish)
+
+    if [ -n "$PUBLISH_URL" ]; then
+        publish_cmd+=(--publish-url "$PUBLISH_URL")
+    fi
+
+    if [ "$PUBLISH" = true ]; then
+        echo "Publishing artifacts from dist/..."
+        if ! "${publish_cmd[@]}"; then
+            echo "Error: 'uv publish' failed."
+            echo "Tip: Ensure UV_PUBLISH_TOKEN or UV_PUBLISH_USERNAME/PASSWORD are set."
+            return 1
+        fi
+    fi
+
+    echo "Success: $LIB v$VERSION has been published!"
+    return 0
 }

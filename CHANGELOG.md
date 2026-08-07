@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+  - added `install_uv` to install uv Python package manager
+  - added `setup_python_env` to create a Python environment based on pyproject.toml
+  - added `build_and_publish_python_lib` to build and publish a Python package
   - added `install_micromamba` to install Micromamba
   - added `setup_micromamba_env` to create Micromamba Python environment and install dependencies
   - added `run_pytest` to run lint and tests with coverage in Python Micromamba environment
