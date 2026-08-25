@@ -1962,6 +1962,7 @@ get_job_krawler_version() {
 # 5. the registry username to use
 # 6. the file containing the registry password
 # 7. true to push the built container on the registry
+# 8. the krawler image tag (defaults = latest)
 build_job() {
     local REPO_DIR="$1"
     local IMAGE_PREFIX="$2"
@@ -1970,6 +1971,7 @@ build_job() {
     local REGISTRY_USERNAME="$5"
     local REGISTRY_PASSWORD_FILE="$6"
     local PUBLISH="$7"
+    local KRAWLER_TAG="${8:-latest}"
 
     ## Init workspace
     ##
@@ -1997,7 +1999,6 @@ build_job() {
     local DOCKERFILE="dockerfile"
     local IMAGE_NAME="$REGISTRY_URL/$IMAGE_PREFIX/$JOB"
     local IMAGE_TAG="latest"
-    local KRAWLER_TAG="latest"
 
     # If building from a tag, make a tagged image and use specified krawler
     if [ -n "$GIT_TAG" ]; then
