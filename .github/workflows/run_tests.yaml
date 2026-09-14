@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Run tests
         # env:
         #   SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
