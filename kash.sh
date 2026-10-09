@@ -147,7 +147,7 @@ GH_VERSION=2.88.0
 # https://github.com/nvm-sh/nvm/releases
 NVM_VERSION=0.40.3
 # https://github.com/pnpm/pnpm/releases
-PNPM_VERSION=10.28.2
+PNPM_VERSION=10.34.5
 # https://nodejs.org/en/about/previous-releases#looking-for-latest-release-of-a-version-branch
 NODE20_VERSION=20.19
 NODE22_VERSION=22.21
@@ -2925,20 +2925,20 @@ setup_python_env() {
 
     while [[ "$#" -gt 0 ]]; do
         case $1 in
-            -a|--auto-activate) 
+            -a|--auto-activate)
                 auto_activate="true"
                 ;;
-            
-            -p|--py-version) 
+
+            -p|--py-version)
                 py_version="$2"
                 shift
                 ;;
-                
-            -g|--group) 
+
+            -g|--group)
                 group="$2"
                 shift
                 ;;
-                
+
             *)
                 ;;
         esac
@@ -3031,7 +3031,7 @@ run_python_lib_tests() {
 # 1. Root directory of the python project
 # 2. true to publish the built artifacts to a repository (default: false)
 # 3. Publish URL (e.g., Nexus repository URL) (Optional)
-# 
+#
 # NOTE: Authentication must be provided via CI environment variables:
 # - For token auth: export UV_PUBLISH_TOKEN="your_token"
 # - For basic auth: export UV_PUBLISH_USERNAME="user" and UV_PUBLISH_PASSWORD="password"
