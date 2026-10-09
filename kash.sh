@@ -280,7 +280,7 @@ install_nvm() {
     # We always use yarn as package manager, so tell nvm to install it with every node installation
     # cf. https://github.com/nvm-sh/nvm?tab=readme-ov-file#default-global-packages-from-file-while-installing
     # We use bash -i to have $NVM_DIR loaded
-    bash -i -c 'echo -e "yarn\npnpm" >> $NVM_DIR/default-packages'
+    PNPM_VERSION="$PNPM_VERSION" bash -i -c 'printf "yarn\npnpm@%s\n" "$PNPM_VERSION" > "$NVM_DIR/default-packages"'
     cd ~-
 }
 
