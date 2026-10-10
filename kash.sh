@@ -261,14 +261,15 @@ ensure_sops() {
 # Make sure nvm is installed
 # Arg1: a writable folder where to write downloaded files
 # NOTE: also define 'yarn' as a default package, ie. it'll be automatically
-# installed with each node version
+# installed with each node version. pnpm is installed separately in ~/.local/bin
+# (see install_pnpm) so it doesn't depend on the active node version.
 install_nvm() {
     local DL_ROOT=$1
     local DL_PATH="$DL_ROOT/nvm"
 
     # Node builds for alpine x64/musl required libstdc++
     # See. https://github.com/nvm-sh/nvm/issues/1102#issuecomment-550572252
-    if [ "$OS_ID" = "alpine" ] && [ "$CI" = true ]; then
+    if [ "$OS_ID" = "alpine" ] && [ "${CI:-}" = true ]; then
         apk add libstdc++
     fi
 
@@ -277,11 +278,14 @@ install_nvm() {
     # Make sure current user has a .bashrc where nvm installer will setup things since we mandate bash as execution shell
     if [ ! -f "$HOME/.bashrc" ]; then touch "$HOME/.bashrc"; fi
     bash ./install.sh
-    # We always use yarn as package manager, so tell nvm to install it with every node installation
+    # Tell nvm to install yarn with every node installation
     # cf. https://github.com/nvm-sh/nvm?tab=readme-ov-file#default-global-packages-from-file-while-installing
     # We use bash -i to have $NVM_DIR loaded
-    PNPM_VERSION="$PNPM_VERSION" bash -i -c 'printf "yarn\npnpm@%s\n" "$PNPM_VERSION" > "$NVM_DIR/default-packages"'
+    bash -i -c 'echo "yarn" > "$NVM_DIR/default-packages"'
     cd ~-
+
+    # Standalone binary, doesn't need node to be installed yet
+    install_pnpm
 }
 
 # Install node16, requires nvm to be installed
@@ -579,6 +583,7 @@ ensure_gh() {
         install_gh "$TMP_DIR/dl"
     fi
 }
+
 # Call this to ensure pnpm is available
 ensure_pnpm() {
     set +e
@@ -589,10 +594,14 @@ ensure_pnpm() {
         install_pnpm
     fi
 }
-# Install pnpm via npm
-# Node.js must be available
+
+# Install pnpm as a standalone binary in ~/.local/bin (added to PATH by kash),
+# so it doesn't depend on the active nvm node version and survives across CI steps.
+# The statically linked build works on both glibc (ubuntu, debian) and musl (alpine).
 install_pnpm() {
-    npm install -g pnpm@${PNPM_VERSION}
+    mkdir -p "$HOME/.local/bin"
+    curl -fsSL -o "$HOME/.local/bin/pnpm" "https://github.com/pnpm/pnpm/releases/download/v${PNPM_VERSION}/pnpm-linuxstatic-x64"
+    chmod +x "$HOME/.local/bin/pnpm"
 }
 
 # Install micromamba in ~/.local/bin
