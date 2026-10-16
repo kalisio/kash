@@ -1513,6 +1513,10 @@ get_git_ref_from_container_tag() {
 # 2. the node version to use (16, 18 ...)
 # 3. the kli file to use
 # 4. 'klifull' to install and link using kli, anything else will only clone
+# 5. the way modules are linked: 'kli' relies on 'kli --link', 'hooks' relies on pnpm hooks
+#    (.pnpmfile.cjs) creating the links at install time, 'auto' (default) uses 'hooks' as soon as
+#    a pnpm module of the workspace defines such hooks and 'kli' otherwise (yarn modules, but also
+#    pnpm monorepos whose packages are linked by kli)
 # NOTE: you should probably 'undef' environment variables before calling this
 # like KALISIO_DEVELOPMENT_DIR ...
 run_kli() {
@@ -1520,6 +1524,7 @@ run_kli() {
     local NODE_VERSION="$2"
     local KLI_FILE="$3"
     local KLI_RUN="${4:-klifull}"
+    local LINK_MODE="${5:-auto}"
 
     # Clone kli in venv if not there
     if [ ! -d "$WORK_DIR/kli" ]; then
@@ -1530,10 +1535,49 @@ run_kli() {
     cd "$WORK_DIR"
     nvm exec "$NODE_VERSION" node "$WORK_DIR/kli/index.js" "$KLI_FILE" --clone --shallow-clone --fail-on-error
     if [ "$KLI_RUN" = klifull ]; then
-        nvm exec "$NODE_VERSION" node "$WORK_DIR/kli/index.js" "$KLI_FILE" --install --fail-on-error
-        nvm exec "$NODE_VERSION" node "$WORK_DIR/kli/index.js" "$KLI_FILE" --link --link-folder "$WORK_DIR/yarn-links" --fail-on-error
+        if [ "$LINK_MODE" = auto ]; then
+            LINK_MODE=kli
+            if kli_workspace_uses_pnpm_hooks "$WORK_DIR" "$NODE_VERSION" "$KLI_FILE"; then
+                LINK_MODE=hooks
+            fi
+        fi
+        if [ "$LINK_MODE" = hooks ]; then
+            ensure_pnpm
+            # Links are created by the pnpm hooks of the modules while installing, they need to know
+            # the kli file and where the modules are (kli resolves them in the work dir by default)
+            nvm exec "$NODE_VERSION" env LINK=1 KLI_FILE="$KLI_FILE" KALISIO_DEVELOPMENT_DIR="${KALISIO_DEVELOPMENT_DIR:-$WORK_DIR}" \
+                node "$WORK_DIR/kli/index.js" "$KLI_FILE" --install --fail-on-error
+        else
+            nvm exec "$NODE_VERSION" node "$WORK_DIR/kli/index.js" "$KLI_FILE" --install --fail-on-error
+            nvm exec "$NODE_VERSION" node "$WORK_DIR/kli/index.js" "$KLI_FILE" --link --link-folder "$WORK_DIR/yarn-links" --fail-on-error
+        fi
     fi
     cd ~-
+}
+
+# Tells whether a kli workspace links its modules using pnpm hooks, ie. if one of its
+# modules is managed by pnpm (same rule as kli: the 'packageManager' field of the
+# module's package.json) and defines a .pnpmfile.cjs. Modules must have been cloned already.
+# Expected args:
+# 1. the folder where kli has been run
+# 2. the node version to use (16, 18 ...)
+# 3. the kli file to use
+kli_workspace_uses_pnpm_hooks() {
+    local WORK_DIR="$1"
+    local NODE_VERSION="$2"
+    local KLI_FILE="$3"
+
+    local RESULT
+    RESULT=$(cd "$WORK_DIR" && nvm exec --silent "$NODE_VERSION" node --input-type=module -e "
+        const fs = await import('node:fs')
+        const path = await import('node:path')
+        const { Workspace } = await import(process.argv[1])
+        const workspace = await Workspace.load(process.argv[2])
+        const usesHooks = workspace.modules.some(m => String(m.package?.packageManager || '').includes('pnpm') &&
+          fs.existsSync(path.join(m.dir, '.pnpmfile.cjs')))
+        console.log(usesHooks ? 'hooks' : 'kli')
+    " "$WORK_DIR/kli/index.js" "$KLI_FILE" | tail -n 1)
+    [ "$RESULT" = hooks ]
 }
 
 # Setup the workspace for a 'simple' project.
