@@ -1786,13 +1786,19 @@ run_app_tests() {
     local FLAVOR
     FLAVOR=$(get_app_flavor)
 
-    echo "About to run tests for $APP v$VERSION-$FLAVOR ..."
+    local PM
+    PM=$(get_node_package_manager "$REPO_DIR")
+    if [ "$PM" = pnpm ]; then
+        ensure_pnpm
+    fi
+
+    echo "About to run tests for $APP v$VERSION-$FLAVOR using $PM ..."
 
     ## Lint whole project
     ##
 
     cd "$REPO_DIR"
-    yarn lint
+    "$PM" run lint
     cd ~-
 
     ## Start mongo
@@ -1813,7 +1819,7 @@ run_app_tests() {
     cd "$REPO_DIR/api"
 
     use_node "$NODE_VER"
-    yarn test
+    "$PM" run test
 
     ## Run SonarQube analysis and publish code quality & coverage reports
     ##
