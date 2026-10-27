@@ -151,7 +151,8 @@ PNPM_VERSION=10.34.5
 # https://nodejs.org/en/about/previous-releases#looking-for-latest-release-of-a-version-branch
 NODE20_VERSION=20.19
 NODE22_VERSION=22.21
-NODE24_VERSION=24.12
+NODE24_VERSION=24.22.1
+NODE26_VERSION=26.12.1
 
 # https://www.mongodb.com/try/download/community
 MONGODB7_VERSION=7.0.21
@@ -311,6 +312,11 @@ install_node22() {
 # Install node24, requires nvm to be installed
 install_node24() {
     bash -i -c "nvm install $NODE24_VERSION"
+}
+
+# Install node26, requires nvm to be installed
+install_node26() {
+    bash -i -c "nvm install $NODE26_VERSION"
 }
 
 # Return the node package manager
