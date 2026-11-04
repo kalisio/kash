@@ -472,6 +472,25 @@ install_helmfile() {
     cd ~-
 }
 
+# Install Kalisio's meta cli
+# Expected environnment variables:
+#  - KALISIO_META_CLI_GIT_URL the url where to clone the meta-ekosystem repository
+#  - or KALISIO_GITHUB_URL the base url to clone private repositories in the kalisio org
+#  - KALISIO_METAèCLI_GIT_REF the git tag/branch/commit to pull when cloning the repo
+install_meta_cli() {
+    local REPO_URL="${KALISIO_META_CLI_GIT_URL:-${KALISIO_GITHUB_URL:-}/kalisio/meta-ekosystem.git}"
+    local REPO_DIR="${WORKSPACE_DIR}/meta-ekosystem"
+    local REPO_REF="${KALISIO_META_CLI_GIT_REF:-}"
+
+    git_shallow_clone "$REPO_URL" "$REPO_DIR" "$REPO_REF"
+
+    cd "$REPO_DIR"
+    pnpm install
+    cd packages/meta-cli
+    PNPM_HOME=~/.local/bin pnpm link
+    cd ~-
+}
+
 # Returns 0 if a given git tag already exists, 1 otherwise.
 # Arg1: the tag name (eg. geokoder-1.2.0)
 # Arg2: the repository directory (defaults to current directory)
@@ -1511,6 +1530,41 @@ get_git_ref_from_container_tag() {
     elif [ "$CONTAINER_TAG" = "dev" ]; then
         printf "master"
     fi
+}
+
+# Returns the kli file to use based on flavor, version etc ...
+# Expected args:
+# 1. the base directory where to find kli files
+# 2. the app name
+# 3. the app source directory
+# 4. a git ref to override the git ref found in the app source directory
+get_kli_file() {
+    local KLI_BASE="$1"
+    local KLI_NAME="$2"
+    local REPO_DIR="$3"
+    local OVERRIDE_GIT_REF="${4:-}"
+
+    local GIT_REF="$OVERRIDE_GIT_REF"
+    if [[ "$GIT_REF" = "" ]]; then
+        local GIT_TAG
+        local GIT_BRANCH
+        GIT_TAG=$(get_git_tag "$REPO_DIR")
+        GIT_BRANCH=$(get_git_branch "$REPO_DIR")
+        GIT_REF="${GIT_TAG:-$GIT_BRANCH}"
+    fi
+
+    local APP_FLAVOR
+    local APP_VERSION
+    local APP_CUSTOM
+    APP_FLAVOR=$(get_flavor_from_git_ref "$GIT_REF")
+    APP_VERSION=$(get_version_from_git_ref "$GIT_REF")
+    APP_CUSTOM=$(get_custom_from_git_ref "$GIT_REF")
+
+    local KLI_FILE="$KLI_NAME"
+    [[ "$APP_VERSION" != "" ]] && KLI_FILE="$KLI_FILE-$APP_VERSION"
+    [[ "$APP_CUSTOM" != "" ]] && KLI_FILE="$KLI_FILE-$APP_CUSTOM"
+
+    printf "%s/%s/%s/%s.js" "$KLI_BASE" "$KLI_NAME" "$APP_FLAVOR" "$KLI_FILE"
 }
 
 # Runs kli in a separate folder.
