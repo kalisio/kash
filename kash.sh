@@ -472,25 +472,6 @@ install_helmfile() {
     cd ~-
 }
 
-# Install Kalisio's meta cli
-# Expected environnment variables:
-#  - KALISIO_META_CLI_GIT_URL the url where to clone the meta-ekosystem repository
-#  - or KALISIO_GITHUB_URL the base url to clone private repositories in the kalisio org
-#  - KALISIO_METAèCLI_GIT_REF the git tag/branch/commit to pull when cloning the repo
-install_meta_cli() {
-    local REPO_URL="${KALISIO_META_CLI_GIT_URL:-${KALISIO_GITHUB_URL:-}/kalisio/meta-ekosystem.git}"
-    local REPO_DIR="${WORKSPACE_DIR}/meta-ekosystem"
-    local REPO_REF="${KALISIO_META_CLI_GIT_REF:-}"
-
-    git_shallow_clone "$REPO_URL" "$REPO_DIR" "$REPO_REF"
-
-    cd "$REPO_DIR"
-    pnpm install
-    cd packages/meta-cli
-    PNPM_HOME=~/.local/bin pnpm link
-    cd ~-
-}
-
 # Returns 0 if a given git tag already exists, 1 otherwise.
 # Arg1: the tag name (eg. geokoder-1.2.0)
 # Arg2: the repository directory (defaults to current directory)
@@ -1598,6 +1579,35 @@ run_kli() {
         nvm exec "$NODE_VERSION" node "$WORK_DIR/kli/index.js" "$KLI_FILE" --link --link-folder "$WORK_DIR/yarn-links" --fail-on-error
     fi
     cd ~-
+}
+
+# Runs Kalisio's meta kli
+# Expected args:
+# 1. the folder where to install everything
+# 2. the node version to use (24, 26, ...)
+# 3. the kli file to use
+# 4. 'klifull' to install dependencies using kli, anything else will only clone
+run_meta_kli() {
+    local WORK_DIR="$1"
+    local NODE_VERSION="$2"
+    local KLI_FILE="$3"
+    local KLI_RUN="${4:-klifull}"
+
+    if [[ ! -d "$WORK_DIR/meta-ekosystem" ]]; then
+        local REPO_URL="${KALISIO_META_CLI_GIT_URL:-${KALISIO_GITHUB_URL:-}/kalisio/meta-ekosystem.git}"
+        local REPO_DIR="${WORK_DIR}/meta-ekosystem"
+        local REPO_REF="${KALISIO_META_CLI_GIT_REF:-}"
+
+        git_shallow_clone "$REPO_URL" "$REPO_DIR" "$REPO_REF"
+
+        cd "$REPO_DIR"
+        nvm exec "$NODE_VERSION" pnpm install
+        cd ~-
+    fi
+
+    local KLI_OPTS="--clone"
+    [[ "$KLI_RUN" = klifull ]] && KLI_OPTS="$KLI_OPTS --install"
+    cd "$WORK_DIR" && nvm exec "$NODE_VERSION" node "$WORK_DIR/meta-ekosystem/packages/meta-cli/bin/kli.js" "$KLI_FILE" $KLI_OPTS
 }
 
 # Setup the workspace for a 'simple' project.
