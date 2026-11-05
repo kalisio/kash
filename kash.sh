@@ -1587,6 +1587,10 @@ run_kli() {
 # 2. the node version to use (24, 26, ...)
 # 3. the kli file to use
 # 4. 'klifull' to install dependencies using kli, anything else will only clone
+# NOTE: the function will use the global KALISIO_META_CLI_GIT_URL environment variable
+# to fetch the meta-ekosystem repository. If not provided, it concatenates KALISIO_GITHUB_URL
+# with 'kalisio/meta-ekosystem' to generate the url.
+# KALISIO_META_CLI_GIT_REF can be used to specify a tag, branch or commit.
 run_meta_kli() {
     local WORK_DIR="$1"
     local NODE_VERSION="$2"
