@@ -1623,7 +1623,7 @@ run_meta_kli() {
         # We only need packages/meta-cli subfolder, so we do a sparse checkout
         git_shallow_sparse_clone "$REPO_URL" "$REPO_DIR" "$REPO_REF"
         cd "$REPO_DIR"
-        git sparse-checkout set packages/meta-cli
+        git sparse-checkout set scripts packages/meta-cli
         nvm exec "$NODE_VERSION" pnpm install
         cd ~-
     fi
