@@ -921,6 +921,24 @@ git_shallow_clone() {
     git clone $GIT_OPS "$REPO_URL" "$REPO_DIR"
 }
 
+# Shallow clone a subset of a repo (with no history), will also (shallow) clone submodules.
+# Expected args:
+# 1. the url of the repo to clone
+# 2. the directory where to clone the repo
+# 3. the ref to clone (branch or tag)
+git_shallow_sparse_clone() {
+    local REPO_URL=$1
+    local REPO_DIR=$2
+    local REPO_REF=${3:-}
+
+    local GIT_OPS="--depth 1 --recurse-submodules --shallow-submodules --filter=blob:none --sparse"
+    if [ -n "$REPO_REF" ]; then
+        GIT_OPS="$GIT_OPS --branch $REPO_REF"
+    fi
+
+    git clone $GIT_OPS "$REPO_URL" "$REPO_DIR"
+}
+
 ### Github
 ###
 
@@ -1602,9 +1620,10 @@ run_meta_kli() {
         local REPO_DIR="${WORK_DIR}/meta-ekosystem"
         local REPO_REF="${KALISIO_META_CLI_GIT_REF:-}"
 
-        git_shallow_clone "$REPO_URL" "$REPO_DIR" "$REPO_REF"
-
+        # We only need packages/meta-cli subfolder, so we do a sparse checkout
+        git_shallow_sparse_clone "$REPO_URL" "$REPO_DIR" "$REPO_REF"
         cd "$REPO_DIR"
+        git sparse-checkout set packages/meta-cli
         nvm exec "$NODE_VERSION" pnpm install
         cd ~-
     fi
